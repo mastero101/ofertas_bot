@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Envío de Ofertas</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Update the modal HTML structure -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closePreview()">&times;</span>
+            <h2>Vista Previa del Correo</h2>
+            <iframe id="previewFrame" class="preview-frame"></iframe>
+        </div>
+    </div>
+    
+    <!-- Update the styles -->
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+        }
+    
+        .modal-content {
+            position: relative;
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+    
+        .close-modal {
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #666;
+            cursor: pointer;
+            z-index: 1001;
+            padding: 5px 10px;
+        }
+    
+        .close-modal:hover {
+            color: #000;
+        }
+    
+        .preview-frame {
+            width: 100%;
+            height: 600px;
+            border: none;
+            margin-top: 10px;
+        }
+    </style>
+    
+    <!-- Update the JavaScript -->
+    <script>
+        function closePreview() {
+            document.getElementById('previewModal').style.display = 'none';
+        }
+    
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('previewModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-paper-plane"></i> Sistema de Envío de Ofertas</h1>
+        
+        <div class="upload-section">
+            <h2><i class="fas fa-file-excel"></i> Subir Archivo Excel</h2>
+            <form action="/upload" method="post" enctype="multipart/form-data">
+                <div class="file-upload">
+                    <input type="file" name="excelFile" accept=".xlsx,.xls" id="excelFile">
+                    <button type="submit"><i class="fas fa-upload"></i> Subir</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="manual-entry">
+            <h2><i class="fas fa-edit"></i> Entrada Manual</h2>
+            <form action="/send-emails" method="post" id="emailForm" enctype="multipart/form-data">
+                <div>
+                    <label for="email"><i class="fas fa-envelope"></i> Correo del Destinatario:</label>
+                    <input type="email" name="email" required placeholder="ejemplo@correo.com">
+                </div>
+                <div>
+                    <label for="customerName">Nombre del Cliente:</label>
+                    <input type="text" name="customerName" required>
+                </div>
+                <div>
+                    <label for="subject">Asunto:</label>
+                    <input type="text" name="subject" required>
+                </div>
+                <div>
+                    <label for="offerTitle">Título de la Oferta:</label>
+                    <input type="text" name="offerTitle" required>
+                </div>
+                <div>
+                    <label for="offerDescription">Descripción de la Oferta:</label>
+                    <textarea name="offerDescription" required></textarea>
+                </div>
+                <div>
+                    <label for="offerPrice">Precio de la Oferta:</label>
+                    <input type="number" name="offerPrice" step="0.01">
+                </div>
+                <div>
+                    <label for="productImage"><i class="fas fa-image"></i> Imagen del Producto:</label>
+                    <input type="file" name="productImage" id="productImage" accept="image/*">
+                    <div id="imagePreview" class="image-preview"></div>
+                </div>
+                <div>
+                    <label for="offerLink">Enlace de la Oferta:</label>
+                    <input type="url" name="offerLink">
+                </div>
+                <div class="button-group">
+                    <button type="button" onclick="previewEmail()" class="preview-btn">
+                        <i class="fas fa-eye"></i> Vista Previa
+                    </button>
+                    <button type="submit" class="send-btn">
+                        <i class="fas fa-paper-plane"></i> Enviar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Vista Previa -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closePreview()">&times;</span>
+            <h2>Vista Previa del Correo</h2>
+            <iframe id="previewFrame" class="preview-frame"></iframe>
+        </div>
+    </div>
+
+    <!-- Add this before the closing </body> tag -->
+    <script>
+        // Existing preview email function...
+    
+        // Image preview functionality
+        document.getElementById('productImage').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+                preview.innerHTML = '';
+            }
+        });
+    
+        // Modified preview email function
+        function previewEmail() {
+            const form = document.getElementById('emailForm');
+            const formData = new FormData(form);
+
+            fetch('/preview-email', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(html => {
+                const frame = document.getElementById('previewFrame');
+                frame.srcdoc = html;
+                document.getElementById('previewModal').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al generar la vista previa');
+            });
+        }
+    </script>
+</body>
+</html>
