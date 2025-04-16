@@ -22,14 +22,8 @@ app.use(express.static('public'));
 app.set('view engine', 'ejs');
 
 // Configure multer for file uploads
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads/')
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname)
-    }
-});
+// Replace the multer storage configuration
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // Routes
@@ -118,12 +112,11 @@ app.post('/send-emails', upload.single('productImage'), async (req, res) => {
     try {
         let imageUrl = null;
         if (req.file) {
-            // Upload to ImgBB with correct parameter
             const imgbbResponse = await imgbbUploader({
                 apiKey: IMGBB_API_KEY,
-                imagePath: path.join(__dirname, '..', 'uploads', req.file.filename) // Changed from 'path' to 'imagePath'
+                base64string: req.file.buffer.toString('base64')
             });
-            imageUrl = imgbbResponse.display_url; // Use display_url for direct image link
+            imageUrl = imgbbResponse.display_url;
         }
 
         const emailData = {
@@ -172,9 +165,9 @@ app.post('/preview-email', upload.single('productImage'), async (req, res) => {
         if (req.file) {
             const imgbbResponse = await imgbbUploader({
                 apiKey: IMGBB_API_KEY,
-                imagePath: path.join(__dirname, '..', 'uploads', req.file.filename)
+                base64string: req.file.buffer.toString('base64')
             });
-            imageUrl = imgbbResponse.display_url; // Use ImgBB URL for preview
+            imageUrl = imgbbResponse.display_url;
         }
 
         const emailData = {

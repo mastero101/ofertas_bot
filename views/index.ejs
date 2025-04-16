@@ -202,6 +202,52 @@
                 alert('Error al generar la vista previa');
             });
         }
+    
+    // Add this function after your existing JavaScript
+    function showSuccessModal() {
+        document.getElementById('successModal').style.display = 'block';
+        setTimeout(() => {
+            document.getElementById('successModal').style.display = 'none';
+        }, 3000); // Hide after 3 seconds
+    }
+    
+    // Update the form submission handler
+    document.getElementById('emailForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+    
+        fetch('/send-emails', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccessModal();
+                this.reset();
+                document.getElementById('imagePreview').style.display = 'none';
+            } else {
+                alert(data.message || 'Error al enviar el correo');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al enviar el correo');
+        });
+    });
     </script>
+    <!-- Add this after the preview modal -->
+    <div id="successModal" class="modal success-modal">
+        <div class="modal-content success-content">
+            <div class="success-checkmark">
+                <div class="check-icon">
+                    <span class="icon-line line-tip"></span>
+                    <span class="icon-line line-long"></span>
+                </div>
+            </div>
+            <h2>¡Éxito!</h2>
+            <p>Email enviado satisfactoriamente</p>
+        </div>
+    </div>
 </body>
 </html>
