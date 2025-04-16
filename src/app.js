@@ -4,9 +4,16 @@ const nodemailer = require('nodemailer');
 const xlsx = require('xlsx');
 const path = require('path');
 const ejs = require('ejs');
+const imgbbUploader = require('imgbb-uploader');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
+let fetch;
+(async () => {
+    fetch = (await import('node-fetch')).default;
+})();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 1071;
 
 // Middleware
 app.use(express.json());
@@ -47,7 +54,13 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Add new function to send HTML email
+//function to send HTML email
+// Replace the constants with environment variables
+const ZEPTO_API_KEY = process.env.ZEPTO_API_KEY;
+const ZEPTO_FROM_EMAIL = process.env.ZEPTO_FROM_EMAIL;
+const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
+
+// Update the sendHTMLEmail function with better error handling
 async function sendHTMLEmail(emailData) {
     try {
         const htmlContent = await ejs.renderFile(
@@ -59,43 +72,92 @@ async function sendHTMLEmail(emailData) {
                 offerDescription: emailData.offerDescription,
                 offerPrice: emailData.offerPrice,
                 offerLink: emailData.offerLink,
-                unsubscribeLink: emailData.unsubscribeLink
+                unsubscribeLink: emailData.unsubscribeLink,
+                productImage: emailData.productImage
             }
         );
 
-        const mailOptions = {
-            from: '"Your Company" <your-email@gmail.com>',
-            to: emailData.to,
-            subject: emailData.subject,
-            html: htmlContent
-        };
+        const response = await fetch('https://api.zeptomail.com/v1.1/email', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `${ZEPTO_API_KEY}`
+            },
+            body: JSON.stringify({
+                from: {
+                    address: ZEPTO_FROM_EMAIL
+                },
+                to: [{
+                    email_address: {
+                        address: emailData.to,
+                        name: emailData.customerName
+                    }
+                }],
+                subject: emailData.subject,
+                htmlbody: htmlContent
+            })
+        });
 
-        return await transporter.sendMail(mailOptions);
+        const responseData = await response.text();
+        console.log('ZeptoMail API Response:', responseData);
+
+        if (!response.ok) {
+            throw new Error(`Email sending failed: ${response.status} - ${response.statusText} - ${responseData}`);
+        }
+
+        return JSON.parse(responseData);
     } catch (error) {
+        console.error('Detailed error:', error);
         throw error;
     }
 }
 
-// Modify the send-emails route
-app.post('/send-emails', async (req, res) => {
+// Update the send-emails route with better error handling
+app.post('/send-emails', upload.single('productImage'), async (req, res) => {
     try {
+        let imageUrl = null;
+        if (req.file) {
+            // Upload to ImgBB with correct parameter
+            const imgbbResponse = await imgbbUploader({
+                apiKey: IMGBB_API_KEY,
+                imagePath: path.join(__dirname, '..', 'uploads', req.file.filename) // Changed from 'path' to 'imagePath'
+            });
+            imageUrl = imgbbResponse.display_url; // Use display_url for direct image link
+        }
+
         const emailData = {
             to: req.body.email,
             subject: req.body.subject,
-            companyName: 'Your Company Name',
-            customerName: req.body.customerName || 'Valued Customer',
+            companyName: 'HAMSE',
+            customerName: req.body.customerName || 'Cliente',
             offerTitle: req.body.offerTitle,
             offerDescription: req.body.offerDescription,
             offerPrice: req.body.offerPrice,
             offerLink: req.body.offerLink || '#',
-            unsubscribeLink: '#'
+            unsubscribeLink: '#',
+            productImage: imageUrl // Use the ImgBB URL instead of local path
         };
 
-        await sendHTMLEmail(emailData);
-        res.json({ success: true, message: 'Email sent successfully' });
+        const result = await sendHTMLEmail(emailData);
+        res.json({ success: true, message: 'Email sent successfully', result });
     } catch (error) {
         console.error('Error sending email:', error);
-        res.status(500).json({ success: false, message: 'Error sending email' });
+        
+        // Handle specific ZeptoMail errors
+        if (error.message.includes('IP address not allowed')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Server IP not authorized. Please contact administrator.',
+                error: 'IP_NOT_WHITELISTED'
+            });
+        }
+        
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error sending email. Please try again later.',
+            error: error.message
+        });
     }
 });
 
@@ -106,6 +168,15 @@ app.use('/uploads', express.static('uploads'));
 // Update the preview route to handle file uploads
 app.post('/preview-email', upload.single('productImage'), async (req, res) => {
     try {
+        let imageUrl = null;
+        if (req.file) {
+            const imgbbResponse = await imgbbUploader({
+                apiKey: IMGBB_API_KEY,
+                imagePath: path.join(__dirname, '..', 'uploads', req.file.filename)
+            });
+            imageUrl = imgbbResponse.display_url; // Use ImgBB URL for preview
+        }
+
         const emailData = {
             to: req.body.email || 'preview@example.com',
             subject: req.body.subject || 'Vista Previa',
@@ -116,7 +187,7 @@ app.post('/preview-email', upload.single('productImage'), async (req, res) => {
             offerPrice: req.body.offerPrice || '',
             offerLink: req.body.offerLink || '#',
             unsubscribeLink: '#',
-            productImage: req.file ? `/uploads/${req.file.filename}` : null
+            productImage: imageUrl  // Use ImgBB URL instead of local path
         };
 
         const htmlContent = await ejs.renderFile(
