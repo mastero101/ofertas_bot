@@ -363,7 +363,7 @@
                 // Auto-hide modal after 3 seconds
                 setTimeout(() => {
                     modal.style.display = 'none';
-                }, 3000);
+                }, 1500);
             } else {
                 alert(data.message || 'Error al cargar el archivo');
             }
@@ -391,15 +391,70 @@
     <div class="queue-section" style="display: none;">
         <h2><i class="fas fa-list"></i> Cola de Correos</h2>
         <div class="queue-list"></div>
+        <!-- Add this in the queue-actions div -->
         <div class="queue-actions">
-            <button onclick="sendQueue()" class="send-queue-btn">
-                <i class="fas fa-paper-plane"></i> Enviar Todos
-            </button>
+            <div class="queue-buttons">
+                <button onclick="sendQueue()" class="send-queue-btn">
+                    <i class="fas fa-paper-plane"></i> Enviar Todos
+                </button>
+                <button onclick="clearQueue()" class="clear-queue-btn">
+                    <i class="fas fa-trash"></i> Limpiar Lista
+                </button>
+            </div>
         </div>
+        
+        <!-- Add these styles -->
+        <style>
+            .queue-buttons {
+                display: flex;
+                gap: 15px;
+                justify-content: flex-start;
+            }
+        
+            .clear-queue-btn {
+                background-color: #e74c3c;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: var(--border-radius);
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: background-color 0.3s;
+            }
+        
+            .clear-queue-btn:hover {
+                background-color: #c0392b;
+            }
+        </style>
+        
+        <!-- Add this JavaScript function -->
+        <script>
+            async function clearQueue() {
+                if (confirm('¿Está seguro que desea eliminar todos los correos de la lista?')) {
+                    try {
+                        const response = await fetch('/queue', { method: 'DELETE' });
+                        const data = await response.json();
+
+                        if (data.success) {
+                            document.querySelector('.queue-section').style.display = 'none';
+                            emailQueue = [];
+                        } else {
+                            alert('Error al limpiar la lista');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Error al limpiar la lista');
+                    }
+                }
+            }
+        </script>
     </div>
 
     <!-- Add this JavaScript before the closing body tag -->
     <script>
+        // Update the loadQueueDisplay function to include delete buttons
         async function loadQueueDisplay() {
             try {
                 const response = await fetch('/queue');
@@ -410,11 +465,14 @@
                 
                 if (emails.length > 0) {
                     queueSection.style.display = 'block';
-                    queueList.innerHTML = emails.map(email => `
+                    queueList.innerHTML = emails.map((email, index) => `
                         <div class="queue-item">
                             <i class="fas fa-envelope"></i>
                             <span>${email.to}</span>
                             <span class="queue-subject">${email.subject}</span>
+                            <button onclick="deleteQueueItem(${index})" class="delete-item-btn">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     `).join('');
                 } else {
@@ -424,7 +482,24 @@
                 console.error('Error loading queue:', error);
             }
         }
+        
+        // Add the deleteQueueItem function
+        async function deleteQueueItem(index) {
+            try {
+                const response = await fetch(`/queue/${index}`, { method: 'DELETE' });
+                const data = await response.json();
     
+                if (data.success) {
+                    await loadQueueDisplay();
+                } else {
+                    alert('Error al eliminar el correo');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar el correo');
+            }
+        }
+        
         async function sendQueue() {
             try {
                 const response = await fetch('/send-queue', { method: 'POST' });
@@ -459,12 +534,13 @@
         }
     
         .queue-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        position: relative;
+    }
     
         .queue-subject {
             color: #666;
@@ -498,6 +574,27 @@
         padding: 40px;
         max-width: 400px;
         border-radius: var(--border-radius);
+    }
+
+    .delete-item-btn {
+        background-color: transparent;
+        color: #e74c3c;
+        border: none;
+        cursor: pointer;
+        padding: 5px;
+        margin-left: auto;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+
+    .delete-item-btn:hover {
+        background-color: #e74c3c;
+        color: white;
     }
     </style>
 </body>

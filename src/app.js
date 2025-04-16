@@ -309,3 +309,18 @@ app.get('/download-template', (req, res) => {
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
+
+// Add this with your other routes
+app.delete('/queue/:index', (req, res) => {
+    try {
+        const index = parseInt(req.params.index);
+        if (index >= 0 && index < emailQueue.length) {
+            emailQueue.splice(index, 1);
+            res.json({ success: true, message: 'Email removed from queue' });
+        } else {
+            res.status(400).json({ success: false, message: 'Invalid index' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error removing email from queue' });
+    }
+});
