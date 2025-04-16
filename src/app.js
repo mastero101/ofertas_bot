@@ -1,6 +1,5 @@
 const express = require('express');
 const multer = require('multer');
-const nodemailer = require('nodemailer');
 const xlsx = require('xlsx');
 const path = require('path');
 const ejs = require('ejs');
@@ -22,7 +21,6 @@ app.use(express.static('public'));
 app.set('view engine', 'ejs');
 
 // Configure multer for file uploads
-// Replace the multer storage configuration
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
@@ -35,17 +33,6 @@ app.post('/upload', upload.single('excelFile'), (req, res) => {
     // Handle Excel file upload
     // TODO: Implement Excel processing
     res.json({ message: 'File uploaded successfully' });
-});
-
-// Add email configuration
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',  // Replace with your SMTP server
-    port: 587,
-    secure: false,
-    auth: {
-        user: 'your-email@gmail.com',  // Replace with your email
-        pass: 'your-password'          // Replace with your password/app password
-    }
 });
 
 //function to send HTML email
@@ -154,7 +141,6 @@ app.post('/send-emails', upload.single('productImage'), async (req, res) => {
     }
 });
 
-// Add preview route
 // Add this near the top with other middleware
 app.use('/uploads', express.static('uploads'));
 
