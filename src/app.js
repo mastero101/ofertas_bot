@@ -30,6 +30,10 @@ app.get('/', (req, res) => {
 });
 
 // Update the upload route to process Excel files
+// Add this near the top of your file
+let emailQueue = [];
+
+// Update the upload route
 app.post('/upload', upload.single('excelFile'), async (req, res) => {
     try {
         if (!req.file) {
@@ -42,37 +46,27 @@ app.post('/upload', upload.single('excelFile'), async (req, res) => {
         const sheet = workbook.Sheets[sheetName];
         const data = xlsx.utils.sheet_to_json(sheet);
 
-        // Validate data structure
         if (data.length === 0) {
             return res.status(400).json({ success: false, message: 'Excel file is empty' });
         }
 
-        // Process each row
-        for (const row of data) {
-            const emailData = {
-                to: row.email,
-                subject: row.subject,
-                companyName: 'HAMSE',
-                customerName: row.customerName || 'Cliente',
-                offerTitle: row.offerTitle,
-                offerDescription: row.offerDescription,
-                offerPrice: row.offerPrice,
-                offerLink: row.offerLink || '#',
-                unsubscribeLink: '#',
-                productImage: row.productImage || null
-            };
-
-            try {
-                await sendHTMLEmail(emailData);
-                console.log(`Email sent successfully to ${row.email}`);
-            } catch (error) {
-                console.error(`Failed to send email to ${row.email}:`, error);
-            }
-        }
+        // Store data in queue
+        emailQueue = data.map(row => ({
+            to: row.email,
+            subject: row.subject,
+            companyName: 'HAMSE',
+            customerName: row.customerName || 'Cliente',
+            offerTitle: row.offerTitle,
+            offerDescription: row.offerDescription,
+            offerPrice: row.offerPrice,
+            offerLink: row.offerLink || '#',
+            unsubscribeLink: '#',
+            productImage: row.productImage || null
+        }));
 
         res.json({ 
             success: true, 
-            message: `Processed ${data.length} emails successfully`,
+            message: `Loaded ${data.length} emails successfully`,
             totalEmails: data.length
         });
     } catch (error) {
@@ -81,6 +75,43 @@ app.post('/upload', upload.single('excelFile'), async (req, res) => {
             success: false, 
             message: 'Error processing Excel file',
             error: error.message 
+        });
+    }
+});
+
+// Add new routes for queue management
+app.get('/queue', (req, res) => {
+    res.json(emailQueue);
+});
+
+app.post('/send-queue', async (req, res) => {
+    try {
+        const results = [];
+        const errors = [];
+
+        for (const emailData of emailQueue) {
+            try {
+                await sendHTMLEmail(emailData);
+                results.push({ email: emailData.to, status: 'success' });
+            } catch (error) {
+                errors.push({ email: emailData.to, error: error.message });
+            }
+        }
+
+        // Clear queue after sending
+        emailQueue = [];
+
+        res.json({
+            success: true,
+            message: `Sent ${results.length} emails, ${errors.length} failed`,
+            results,
+            errors
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error processing email queue',
+            error: error.message
         });
     }
 });

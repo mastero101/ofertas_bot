@@ -95,17 +95,101 @@
         
         <div class="upload-section">
             <h2><i class="fas fa-file-excel"></i> Subir Archivo Excel</h2>
+            <!-- Update the excel-actions div structure -->
             <div class="excel-actions">
-                <a href="/download-template" class="download-template-btn">
-                    <i class="fas fa-download"></i> Descargar Plantilla
-                </a>
-                <form action="/upload" method="post" enctype="multipart/form-data">
-                    <div class="file-upload">
-                        <input type="file" name="excelFile" accept=".xlsx,.xls" id="excelFile">
-                        <button type="submit"><i class="fas fa-upload"></i> Subir</button>
-                    </div>
-                </form>
+                <div class="button-group">
+                    <form action="/upload" method="post" enctype="multipart/form-data">
+                        <div class="file-upload">
+                            <input type="file" name="excelFile" accept=".xlsx,.xls" id="excelFile">
+                            <button type="submit" class="upload-btn">
+                                <i class="fas fa-upload"></i> Subir
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
+            <a href="/download-template" class="download-template-btn">
+                <i class="fas fa-download"></i> Descargar Plantilla
+            </a>
+            
+            <!-- Add these styles -->
+            <style>
+                .button-group {
+                    display: flex;
+                    gap: 15px;
+                    align-items: center;
+                    margin: 15px 0;
+                }
+
+                .download-template-btn, .upload-btn, .preview-btn, .send-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 10px 20px;
+                    border-radius: var(--border-radius);
+                    cursor: pointer;
+                    font-size: 14px;
+                    transition: background-color 0.3s;
+                    border: none;
+                }
+
+                .download-template-btn {
+                    background-color: #3498db;
+                    color: white;
+                    text-decoration: none;
+                }
+
+                .download-template-btn:hover {
+                    background-color: #08ea40;
+                }
+
+                .upload-btn {
+                    background-color: #3498db;
+                    color: white;
+                }
+
+                .upload-btn:hover {
+                    background-color: #08ea40;
+                }
+
+                .file-upload {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .file-upload input[type="file"] {
+                    padding: 8px;
+                    border: 1px solid #ddd;
+                    border-radius: var(--border-radius);
+                    background: #f9f9f9;
+                }
+
+                .preview-btn {
+                    background-color: #e67e22;
+                    color: white;
+                }
+
+                .preview-btn:hover {
+                    background-color: #d35400;
+                }
+
+                .send-btn {
+                    background-color: #3498db;
+                    color: white;
+                }
+
+                .send-btn:hover {
+                    background-color: #08ea40;
+                }
+
+                .excel-actions {
+                    background-color: #f8f9fa;
+                    padding: 20px;
+                    border-radius: var(--border-radius);
+                    margin: 15px 0;
+                }
+            </style>
         </div>
 
         <div class="manual-entry">
@@ -165,9 +249,21 @@
         </div>
     </div>
 
-    <!-- Add this before the closing </body> tag -->
+    <div id="uploadSuccessModal" class="modal success-modal">
+        <div class="modal-content success-content">
+            <div class="success-checkmark">
+                <div class="check-icon">
+                    <span class="icon-line line-tip"></span>
+                    <span class="icon-line line-long"></span>
+                </div>
+            </div>
+            <h2>¡Archivo Cargado!</h2>
+            <p>Se han cargado los correos exitosamente</p>
+            <p class="email-count"></p>
+        </div>
+    </div>
+
     <script>
-        // Existing preview email function...
     
         // Image preview functionality
         document.getElementById('productImage').addEventListener('change', function(e) {
@@ -240,6 +336,42 @@
             alert('Error al enviar el correo');
         });
     });
+
+    document.querySelector('.upload-section form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        try {
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                // Show upload success modal
+                const modal = document.getElementById('uploadSuccessModal');
+                modal.querySelector('.email-count').textContent = 
+                    `Total de correos: ${data.totalEmails}`;
+                modal.style.display = 'block';
+                
+                // Load queue and scroll to it
+                await loadQueueDisplay();
+                const queueSection = document.querySelector('.queue-section');
+                queueSection.scrollIntoView({ behavior: 'smooth' });
+                
+                // Auto-hide modal after 3 seconds
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 3000);
+            } else {
+                alert(data.message || 'Error al cargar el archivo');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al procesar el archivo');
+        }
+    });
     </script>
     <!-- Add this after the preview modal -->
     <div id="successModal" class="modal success-modal">
@@ -254,5 +386,119 @@
             <p>Email enviado satisfactoriamente</p>
         </div>
     </div>
+
+    <!-- Add this after your upload section -->
+    <div class="queue-section" style="display: none;">
+        <h2><i class="fas fa-list"></i> Cola de Correos</h2>
+        <div class="queue-list"></div>
+        <div class="queue-actions">
+            <button onclick="sendQueue()" class="send-queue-btn">
+                <i class="fas fa-paper-plane"></i> Enviar Todos
+            </button>
+        </div>
+    </div>
+
+    <!-- Add this JavaScript before the closing body tag -->
+    <script>
+        async function loadQueueDisplay() {
+            try {
+                const response = await fetch('/queue');
+                const emails = await response.json();
+                
+                const queueSection = document.querySelector('.queue-section');
+                const queueList = document.querySelector('.queue-list');
+                
+                if (emails.length > 0) {
+                    queueSection.style.display = 'block';
+                    queueList.innerHTML = emails.map(email => `
+                        <div class="queue-item">
+                            <i class="fas fa-envelope"></i>
+                            <span>${email.to}</span>
+                            <span class="queue-subject">${email.subject}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    queueSection.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading queue:', error);
+            }
+        }
+    
+        async function sendQueue() {
+            try {
+                const response = await fetch('/send-queue', { method: 'POST' });
+                const data = await response.json();
+    
+                if (data.success) {
+                    showSuccessModal(`Correos enviados: ${data.results.length}`);
+                    document.querySelector('.queue-section').style.display = 'none';
+                } else {
+                    alert(data.message || 'Error al enviar los correos');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al procesar la cola de correos');
+            }
+        }
+    </script>
+
+    <style>
+        .queue-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    
+        .queue-list {
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    
+        .queue-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+    
+        .queue-subject {
+            color: #666;
+            margin-left: auto;
+        }
+    
+        .send-queue-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    
+        .send-queue-btn:hover {
+            background-color: #34495e;
+        }
+
+        #uploadSuccessModal .email-count {
+        margin-top: 10px;
+        color: #666;
+        font-size: 0.9em;
+    }
+
+    .success-modal .modal-content {
+        text-align: center;
+        padding: 40px;
+        max-width: 400px;
+        border-radius: var(--border-radius);
+    }
+    </style>
 </body>
 </html>
