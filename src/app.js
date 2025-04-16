@@ -29,10 +29,60 @@ app.get('/', (req, res) => {
     res.render('index');
 });
 
-app.post('/upload', upload.single('excelFile'), (req, res) => {
-    // Handle Excel file upload
-    // TODO: Implement Excel processing
-    res.json({ message: 'File uploaded successfully' });
+// Update the upload route to process Excel files
+app.post('/upload', upload.single('excelFile'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+
+        // Read Excel file from buffer
+        const workbook = xlsx.read(req.file.buffer);
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(sheet);
+
+        // Validate data structure
+        if (data.length === 0) {
+            return res.status(400).json({ success: false, message: 'Excel file is empty' });
+        }
+
+        // Process each row
+        for (const row of data) {
+            const emailData = {
+                to: row.email,
+                subject: row.subject,
+                companyName: 'HAMSE',
+                customerName: row.customerName || 'Cliente',
+                offerTitle: row.offerTitle,
+                offerDescription: row.offerDescription,
+                offerPrice: row.offerPrice,
+                offerLink: row.offerLink || '#',
+                unsubscribeLink: '#',
+                productImage: row.productImage || null
+            };
+
+            try {
+                await sendHTMLEmail(emailData);
+                console.log(`Email sent successfully to ${row.email}`);
+            } catch (error) {
+                console.error(`Failed to send email to ${row.email}:`, error);
+            }
+        }
+
+        res.json({ 
+            success: true, 
+            message: `Processed ${data.length} emails successfully`,
+            totalEmails: data.length
+        });
+    } catch (error) {
+        console.error('Error processing Excel file:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error processing Excel file',
+            error: error.message 
+        });
+    }
 });
 
 //function to send HTML email
@@ -179,6 +229,50 @@ app.post('/preview-email', upload.single('productImage'), async (req, res) => {
         console.error('Error generating preview:', error);
         res.status(500).send('Error al generar la vista previa');
     }
+});
+
+// Route to download the template
+app.get('/download-template', (req, res) => {
+    // Create a new workbook
+    const workbook = xlsx.utils.book_new();
+    
+    // Sample data with headers
+    const data = [{
+        email: 'ejemplo@correo.com',
+        subject: 'Oferta Especial',
+        customerName: 'Nombre Cliente',
+        offerTitle: 'Título de la Oferta',
+        offerDescription: 'Descripción detallada de la oferta',
+        offerPrice: '99.99',
+        offerLink: 'https://ejemplo.com/oferta',
+        productImage: 'https://ejemplo.com/imagen.jpg'
+    }];
+
+    // Create worksheet with sample data
+    const worksheet = xlsx.utils.json_to_sheet(data);
+
+    // Add some styling to headers
+    const range = xlsx.utils.decode_range(worksheet['!ref']);
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = xlsx.utils.encode_col(C) + "1";
+        if (!worksheet[address]) continue;
+        worksheet[address].s = {
+            font: { bold: true },
+            fill: { fgColor: { rgb: "CCCCCC" } }
+        };
+    }
+
+    // Add the worksheet to workbook
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Correos');
+
+    // Generate buffer
+    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    // Set headers for download
+    res.setHeader('Content-Disposition', 'attachment; filename=plantilla_correos.xlsx');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    
+    res.send(buffer);
 });
 
 app.listen(port, () => {

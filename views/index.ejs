@@ -95,12 +95,17 @@
         
         <div class="upload-section">
             <h2><i class="fas fa-file-excel"></i> Subir Archivo Excel</h2>
-            <form action="/upload" method="post" enctype="multipart/form-data">
-                <div class="file-upload">
-                    <input type="file" name="excelFile" accept=".xlsx,.xls" id="excelFile">
-                    <button type="submit"><i class="fas fa-upload"></i> Subir</button>
-                </div>
-            </form>
+            <div class="excel-actions">
+                <a href="/download-template" class="download-template-btn">
+                    <i class="fas fa-download"></i> Descargar Plantilla
+                </a>
+                <form action="/upload" method="post" enctype="multipart/form-data">
+                    <div class="file-upload">
+                        <input type="file" name="excelFile" accept=".xlsx,.xls" id="excelFile">
+                        <button type="submit"><i class="fas fa-upload"></i> Subir</button>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <div class="manual-entry">
