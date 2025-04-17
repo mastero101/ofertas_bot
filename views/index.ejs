@@ -72,6 +72,53 @@
             border-radius: 8px;
             border: 1px solid #ddd;
         }
+
+        .button-group {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        margin: 15px 0;
+    }
+
+    .upload-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        min-width: 200px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        text-decoration: none;
+        transition: background-color 0.3s ease;
+    }
+
+    .download-template-btn{
+        padding-bottom: 2%;
+        margin-bottom: 2.5%;
+    }
+
+    .upload-btn:hover, .download-template-btn:hover {
+        background-color: #0af751;
+    }
+
+    .file-upload {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .file-upload input[type="file"] {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #f9f9f9;
+    }
     </style>
     
     <!-- Update the JavaScript -->
@@ -94,102 +141,52 @@
         <h1><i class="fas fa-paper-plane"></i> Sistema de Envío de Ofertas</h1>
         
         <div class="upload-section">
-            <h2><i class="fas fa-file-excel"></i> Subir Archivo Excel</h2>
-            <!-- Update the excel-actions div structure -->
+            <h2><i class="fas fa-file-excel"></i> Envío Masivo</h2>
+            <div class="excel-content-form">
+                <form id="massEmailForm">
+                    <div>
+                        <label for="subject">Asunto:</label>
+                        <input type="text" name="subject" required>
+                    </div>
+                    <div>
+                        <label for="offerTitle">Título de la Oferta:</label>
+                        <input type="text" name="offerTitle" required>
+                    </div>
+                    <div>
+                        <label for="offerDescription">Descripción de la Oferta:</label>
+                        <textarea name="offerDescription" required></textarea>
+                    </div>
+                    <div>
+                        <label for="offerPrice">Precio de la Oferta:</label>
+                        <input type="number" name="offerPrice" step="0.01">
+                    </div>
+                    <div>
+                        <label for="productImage"><i class="fas fa-image"></i> Imagen del Producto:</label>
+                        <input type="file" name="productImage" accept="image/*">
+                        <div id="massImagePreview" class="image-preview"></div>
+                    </div>
+                    <div>
+                        <label for="offerLink">Enlace de la Oferta:</label>
+                        <input type="url" name="offerLink">
+                    </div>
+                </form>
+            </div>
+            
             <div class="excel-actions">
                 <div class="button-group">
-                    <form action="/upload" method="post" enctype="multipart/form-data">
+                    <form action="/upload" method="post" enctype="multipart/form-data" id="excelUploadForm">
                         <div class="file-upload">
                             <input type="file" name="excelFile" accept=".xlsx,.xls" id="excelFile">
                             <button type="submit" class="upload-btn">
-                                <i class="fas fa-upload"></i> Subir
+                                <i class="fas fa-upload"></i> Cargar Lista de Correos
                             </button>
                         </div>
                     </form>
+                    <a href="/download-template" class="download-template-btn">
+                        <i class="fas fa-download"></i> Descargar Plantilla de Correos
+                    </a>
                 </div>
             </div>
-            <a href="/download-template" class="download-template-btn">
-                <i class="fas fa-download"></i> Descargar Plantilla
-            </a>
-            
-            <!-- Add these styles -->
-            <style>
-                .button-group {
-                    display: flex;
-                    gap: 15px;
-                    align-items: center;
-                    margin: 15px 0;
-                }
-
-                .download-template-btn, .upload-btn, .preview-btn, .send-btn {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 10px 20px;
-                    border-radius: var(--border-radius);
-                    cursor: pointer;
-                    font-size: 14px;
-                    transition: background-color 0.3s;
-                    border: none;
-                }
-
-                .download-template-btn {
-                    background-color: #3498db;
-                    color: white;
-                    text-decoration: none;
-                }
-
-                .download-template-btn:hover {
-                    background-color: #08ea40;
-                }
-
-                .upload-btn {
-                    background-color: #3498db;
-                    color: white;
-                }
-
-                .upload-btn:hover {
-                    background-color: #08ea40;
-                }
-
-                .file-upload {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                }
-
-                .file-upload input[type="file"] {
-                    padding: 8px;
-                    border: 1px solid #ddd;
-                    border-radius: var(--border-radius);
-                    background: #f9f9f9;
-                }
-
-                .preview-btn {
-                    background-color: #e67e22;
-                    color: white;
-                }
-
-                .preview-btn:hover {
-                    background-color: #d35400;
-                }
-
-                .send-btn {
-                    background-color: #3498db;
-                    color: white;
-                }
-
-                .send-btn:hover {
-                    background-color: #08ea40;
-                }
-
-                .excel-actions {
-                    background-color: #f8f9fa;
-                    padding: 20px;
-                    border-radius: var(--border-radius);
-                    margin: 15px 0;
-                }
-            </style>
         </div>
 
         <div class="manual-entry">
@@ -337,30 +334,34 @@
         });
     });
 
-    document.querySelector('.upload-section form').addEventListener('submit', async function(e) {
+    document.getElementById('excelUploadForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const formData = new FormData(this);
-
+        
+        // Add mass email content to formData
+        const massEmailForm = document.getElementById('massEmailForm');
+        const massEmailData = new FormData(massEmailForm);
+        for(let [key, value] of massEmailData.entries()) {
+            formData.append(key, value);
+        }
+    
         try {
             const response = await fetch('/upload', {
                 method: 'POST',
                 body: formData
             });
             const data = await response.json();
-
+    
             if (data.success) {
-                // Show upload success modal
                 const modal = document.getElementById('uploadSuccessModal');
                 modal.querySelector('.email-count').textContent = 
-                    `Total de correos: ${data.totalEmails}`;
+                    `Total de destinatarios: ${data.totalEmails}`;
                 modal.style.display = 'block';
                 
-                // Load queue and scroll to it
                 await loadQueueDisplay();
                 const queueSection = document.querySelector('.queue-section');
                 queueSection.scrollIntoView({ behavior: 'smooth' });
                 
-                // Auto-hide modal after 3 seconds
                 setTimeout(() => {
                     modal.style.display = 'none';
                 }, 1500);
@@ -434,14 +435,20 @@
             async function clearQueue() {
                 if (confirm('¿Está seguro que desea eliminar todos los correos de la lista?')) {
                     try {
-                        const response = await fetch('/queue', { method: 'DELETE' });
+                        const response = await fetch('/queue', { 
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
                         const data = await response.json();
-
+            
                         if (data.success) {
-                            document.querySelector('.queue-section').style.display = 'none';
-                            emailQueue = [];
+                            const queueSection = document.querySelector('.queue-section');
+                            queueSection.style.display = 'none';
+                            document.querySelector('.queue-list').innerHTML = '';
                         } else {
-                            alert('Error al limpiar la lista');
+                            alert('Error al limpiar la lista: ' + data.message);
                         }
                     } catch (error) {
                         console.error('Error:', error);
@@ -469,6 +476,7 @@
                         <div class="queue-item">
                             <i class="fas fa-envelope"></i>
                             <span>${email.to}</span>
+                            <span class="customer-name">${email.customerName}</span>
                             <span class="queue-subject">${email.subject}</span>
                             <button onclick="deleteQueueItem(${index})" class="delete-item-btn">
                                 <i class="fas fa-times"></i>
@@ -533,14 +541,20 @@
             overflow-y: auto;
         }
     
+        .customer-name {
+            color: #2980b9;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+    
         .queue-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-        position: relative;
-    }
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            position: relative;
+        }
     
         .queue-subject {
             color: #666;

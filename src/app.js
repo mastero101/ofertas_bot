@@ -34,14 +34,35 @@ app.get('/', (req, res) => {
 let emailQueue = [];
 
 // Update the upload route
-app.post('/upload', upload.single('excelFile'), async (req, res) => {
+app.post('/upload', upload.fields([
+    { name: 'excelFile', maxCount: 1 },
+    { name: 'productImage', maxCount: 1 }
+]), async (req, res) => {
     try {
-        if (!req.file) {
+        if (!req.files?.excelFile) {
             return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
 
-        // Read Excel file from buffer
-        const workbook = xlsx.read(req.file.buffer);
+        // Validate required fields
+        if (!req.body.subject) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Subject is required for the email' 
+            });
+        }
+
+        // Handle product image upload if present
+        let imageUrl = null;
+        if (req.files?.productImage) {
+            const imgbbResponse = await imgbbUploader({
+                apiKey: IMGBB_API_KEY,
+                base64string: req.files.productImage[0].buffer.toString('base64')
+            });
+            imageUrl = imgbbResponse.display_url;
+        }
+
+        // Read Excel file
+        const workbook = xlsx.read(req.files.excelFile[0].buffer);
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const data = xlsx.utils.sheet_to_json(sheet);
@@ -50,18 +71,28 @@ app.post('/upload', upload.single('excelFile'), async (req, res) => {
             return res.status(400).json({ success: false, message: 'Excel file is empty' });
         }
 
-        // Store data in queue
+        // Validate email addresses in Excel
+        const invalidEmails = data.filter(row => !row.email || !row.email.includes('@'));
+        if (invalidEmails.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid email addresses found in Excel file',
+                invalidEmails
+            });
+        }
+
+        // Store data in queue with common email content
         emailQueue = data.map(row => ({
             to: row.email,
-            subject: row.subject,
-            companyName: 'HAMSE',
             customerName: row.customerName || 'Cliente',
-            offerTitle: row.offerTitle,
-            offerDescription: row.offerDescription,
-            offerPrice: row.offerPrice,
-            offerLink: row.offerLink || '#',
+            subject: req.body.subject.trim(),  // Ensure subject is trimmed
+            companyName: 'HAMSE',
+            offerTitle: req.body.offerTitle,
+            offerDescription: req.body.offerDescription,
+            offerPrice: req.body.offerPrice,
+            offerLink: req.body.offerLink || '#',
             unsubscribeLink: '#',
-            productImage: row.productImage || null
+            productImage: imageUrl
         }));
 
         res.json({ 
@@ -77,6 +108,37 @@ app.post('/upload', upload.single('excelFile'), async (req, res) => {
             error: error.message 
         });
     }
+});
+
+// Update the template download route
+app.get('/download-template', (req, res) => {
+    const workbook = xlsx.utils.book_new();
+    
+    // Simplified template with only email and optional customer name
+    const data = [{
+        email: 'ejemplo@correo.com',
+        customerName: 'Nombre Cliente (Opcional)'
+    }];
+
+    const worksheet = xlsx.utils.json_to_sheet(data);
+
+    // Add styling to headers
+    const range = xlsx.utils.decode_range(worksheet['!ref']);
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = xlsx.utils.encode_col(C) + "1";
+        if (!worksheet[address]) continue;
+        worksheet[address].s = {
+            font: { bold: true },
+            fill: { fgColor: { rgb: "CCCCCC" } }
+        };
+    }
+
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Lista de Correos');
+    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Disposition', 'attachment; filename=plantilla_correos.xlsx');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
 });
 
 // Add new routes for queue management
@@ -311,6 +373,20 @@ app.listen(port, () => {
 });
 
 // Add this with your other routes
+app.delete('/queue', (req, res) => {
+    try {
+        emailQueue = [];
+        res.json({ success: true, message: 'Queue cleared successfully' });
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error clearing queue',
+            error: error.message 
+        });
+    }
+});
+
+// Existing delete single item route
 app.delete('/queue/:index', (req, res) => {
     try {
         const index = parseInt(req.params.index);
