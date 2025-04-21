@@ -43,8 +43,11 @@ jobs:
             AYi8UtI6MWt/npmjUyPrt0tUZAhI64zOPQ8UFdWuD6LKjPRxuwJwuQ==
             -----END RSA PRIVATE KEY-----
           script: |
-            sudo su
-            cd ofertas_bot
+            cd /home/ubuntu/ofertas_bot
+            git config --global --add safe.directory /home/ubuntu/ofertas_bot
+            git config --global pull.rebase false
+            git pull origin main
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             pm2 stop 3
-            git pull
             pm2 reload 3
