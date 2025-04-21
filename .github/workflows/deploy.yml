@@ -12,36 +12,9 @@ jobs:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
-          host: 129.80.128.21
-          username: ubuntu
-          key: |
-            -----BEGIN RSA PRIVATE KEY-----
-            MIIEpAIBAAKCAQEAvLZb6YnVIzCO2oiJHI6VLm2x8UyDCooqrtYeZO2sE4G5BqdG
-            NfUO4GpKdFm7N9wtHul5V/eKqk4i9rAhaslJmHP9fBnrlHYv0J75CdZZwYiqRS4o
-            pbu5RX83IY81d7Ncl6DYfAu/CNc4V9OgDunRYUzkZtra2ms456TGzwgpZwRRxtew
-            VaWPOfJMzTfv5FVBwiOdUES7ktI3NHKSu1m2vpMRtnNU9l4tDP+HxhJfVz+/JXal
-            RSlctWX9uFBB9fhbOwu+jn0jd3qFEUNIqa3lQ4jLH0DO3LHtN1r6UI+0OIVd9Ls1
-            Xw8DXaCXpFtGn8fFR0moYNtGJ+MZolr7e1e/0wIDAQABAoIBADSTL680TdOkeyAq
-            KtzwYmKRgCJEWTvN+49DKyueRbMXkIdogfiVYgQmyMB6oVyyNEXo8PwPhKvm4fnN
-            XzoDg0P8iLIS/J2bgb3DFInnlJEFNL7aWcu2rarNgvwQDGrhZxn9X2LL2PirEVDy
-            riSJguJzTCzVq2Rvu+ZZc2QJl5NR1rObFYdImC9LyyB/+iohRuWqUimVIFf/XYPB
-            cKzG+Z0gxIq5coA88HpH9jT7votjumxFO+lpqAo5+m9WU1v0qS+7jUyD1mzIGOwc
-            Iebm1ilqJsDVQScWYyJMyJxXBK7ccQPsvcsjM7rqFTBQpiO5kI+sV4edWcGhPbB0
-            0g8z7gECgYEA+vrJYkL2WCOViVODWvzyPAs3QmO5XfHuLnq2l7J/gXdEaCUh4cqK
-            YJ4ZedRHNPg+Q/aMumYMfxPJQbkfts7sT6rqV5KKpNnEmMqYu9YaTSHHaTQ/zgAw
-            rXxFqP4+7q+Tdp2F5k4AGVLaS5+chOOx0MOBw8l/mLWN0javRQWTZgECgYEAwHy2
-            /PbQ9PPUSuRPxPHh2s3zEQrafIy9ZkABedt2+E6vFNzJHzDMb0EiqOr8twFrcINt
-            6EhaOML16zjBckvtvLCraMONq9+tsmUeZ4Q3EAqzYVt8eKho59afFLi8c5lDc2Wg
-            Bo82CMf9I1wFMsBt6wTxQjdYSxVf848bvT7srdMCgYEAu+EpCCngh7J7qsWdu2tH
-            WrN6tnQ4u570Ek9CiOTSlnRV/TBu4LviQtmXcJ/8fianVfEnABKMoESLkGuo1gyo
-            0iq8KrpEl4t9pHNlSpfIMJ1szdCTQv7ZccVp0EwjiEJfPZhGOFWDtXFUgPAHF2Ps
-            JL92UL5yijq+4/KT2jOGWAECgYEAihGrLD5aWin/8Axej5U0/T7XCDVxzP8i6BIn
-            POJILwo5mcxY02+sZG0jUGjmBtsU1urfTkt/s9FclnHqiHKgP8W13frPRya1sA3K
-            RlRXLsGOM9psqRubzBhtmW59dqnL8R1HMQ1Oo/PXxqI99E6FSZwM9gM+6PSXE9xl
-            +FQHbxMCgYBATE7GE7tznK7s0Hv1p2++6QoDe7Fxp5cmCOhdJ16oZG1OYqMH/m5a
-            dfbnhuVJOrY2QNrGECkCQxA8bL+UDD5Iv4qgaD0kAFInwQUx6aYteS1cg60HrDNT
-            AYi8UtI6MWt/npmjUyPrt0tUZAhI64zOPQ8UFdWuD6LKjPRxuwJwuQ==
-            -----END RSA PRIVATE KEY-----
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/ubuntu/ofertas_bot
             sudo chown -R ubuntu:ubuntu .
