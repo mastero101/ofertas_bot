@@ -43,14 +43,14 @@ jobs:
             AYi8UtI6MWt/npmjUyPrt0tUZAhI64zOPQ8UFdWuD6LKjPRxuwJwuQ==
             -----END RSA PRIVATE KEY-----
           script: |
-            sudo su
             cd /home/ubuntu/ofertas_bot
             sudo chown -R ubuntu:ubuntu .
             git config --global --add safe.directory /home/ubuntu/ofertas_bot
             git config --global pull.rebase false
             git pull origin main
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            pm2 reload 0
-            pm2 describe ofertas_email || pm2 start src/app.js --name ofertas_email
-            pm2 reload ofertas_email
+            sudo -i bash -c '
+              export NVM_DIR="/root/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              cd /home/ubuntu/ofertas_bot
+              pm2 reload 3
+            '
