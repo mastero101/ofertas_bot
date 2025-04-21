@@ -99,11 +99,15 @@
     }
 
     .download-template-btn{
-        padding-bottom: 2%;
+        padding-bottom: 1%;
         margin-bottom: 2.5%;
     }
 
-    .upload-btn:hover, .download-template-btn:hover {
+    .preview-btn {
+        padding-bottom: 0.5%;
+    }
+
+    .upload-btn:hover, .download-template-btn:hover .preview-btn:hover{
         background-color: #0af751;
     }
 
@@ -179,6 +183,9 @@
                             <input type="file" name="excelFile" accept=".xlsx,.xls" id="excelFile">
                             <button type="submit" class="upload-btn">
                                 <i class="fas fa-upload"></i> Cargar Lista de Correos
+                            </button>
+                            <button type="button" onclick="previewMassEmail()" class="preview-btn">
+                                <i class="fas fa-eye"></i> Vista Previa
                             </button>
                         </div>
                     </form>
@@ -459,7 +466,6 @@
         </script>
     </div>
 
-    <!-- Add this JavaScript before the closing body tag -->
     <script>
         // Update the loadQueueDisplay function to include delete buttons
         async function loadQueueDisplay() {
@@ -524,6 +530,47 @@
                 alert('Error al procesar la cola de correos');
             }
         }
+
+        function previewMassEmail() {
+            const form = document.getElementById('massEmailForm');
+            const formData = new FormData(form);
+            
+            // Add example recipient data for preview
+            formData.append('email', 'ejemplo@correo.com');
+            formData.append('customerName', 'Cliente de Ejemplo');
+
+            fetch('/preview-email', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(html => {
+                const frame = document.getElementById('previewFrame');
+                frame.srcdoc = html;
+                document.getElementById('previewModal').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al generar la vista previa');
+            });
+        }
+
+        document.querySelector('#massEmailForm input[name="productImage"]').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('massImagePreview');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+                preview.innerHTML = '';
+            }
+        });
     </script>
 
     <style>
