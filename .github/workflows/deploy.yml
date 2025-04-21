@@ -44,10 +44,12 @@ jobs:
             -----END RSA PRIVATE KEY-----
           script: |
             cd /home/ubuntu/ofertas_bot
+            sudo chown -R ubuntu:ubuntu .
             git config --global --add safe.directory /home/ubuntu/ofertas_bot
             git config --global pull.rebase false
             git pull origin main
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            pm2 stop 3
-            pm2 reload 3
+            pm2 list
+            pm2 describe ofertas_bot || pm2 start src/app.js --name ofertas_bot
+            pm2 reload ofertas_bot
