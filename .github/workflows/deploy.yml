@@ -48,9 +48,8 @@ jobs:
             git config --global --add safe.directory /home/ubuntu/ofertas_bot
             git config --global pull.rebase false
             git pull origin main
-            sudo -i bash -c '
-              export NVM_DIR="/root/.nvm"
-              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            sudo su -c '
+              source /root/.nvm/nvm.sh
               cd /home/ubuntu/ofertas_bot
               pm2 reload 3
             '
