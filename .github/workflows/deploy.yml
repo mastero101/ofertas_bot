@@ -43,6 +43,7 @@ jobs:
             AYi8UtI6MWt/npmjUyPrt0tUZAhI64zOPQ8UFdWuD6LKjPRxuwJwuQ==
             -----END RSA PRIVATE KEY-----
           script: |
+            sudo su
             cd ofertas_bot
             pm2 stop 3
             git pull
