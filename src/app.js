@@ -4,6 +4,9 @@ const xlsx = require('xlsx');
 const path = require('path');
 const ejs = require('ejs');
 const imgbbUploader = require('imgbb-uploader');
+const { connectDB } = require('./config/database');
+const EmailScheduler = require('./services/emailScheduler');
+const EmailTrackingService = require('./services/emailTracking');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 let fetch;
@@ -13,6 +16,12 @@ let fetch;
 
 const app = express();
 const port = 1071;
+
+// Conectar a la base de datos
+connectDB();
+
+// Iniciar el programador de correos
+EmailScheduler.init();
 
 // Middleware
 app.use(express.json());
@@ -26,6 +35,10 @@ const upload = multer({ storage: storage });
 
 // Routes
 app.get('/', (req, res) => {
+    res.redirect('/dashboard');
+});
+
+app.get('/enviar', (req, res) => {
     res.render('index');
 });
 
@@ -50,6 +63,9 @@ app.post('/upload', upload.fields([
                 message: 'Subject is required for the email' 
             });
         }
+
+        // Generar ID de campaña si no se proporciona
+        const campaignId = `campaign_${Date.now()}`;
 
         // Handle product image upload if present
         let imageUrl = null;
@@ -92,7 +108,8 @@ app.post('/upload', upload.fields([
             offerPrice: req.body.offerPrice,
             offerLink: req.body.offerLink || '#',
             unsubscribeLink: '#',
-            productImage: imageUrl
+            productImage: imageUrl,
+            campaignId: campaignId // Asignar campaignId a cada email en la cola
         }));
 
         res.json({ 
@@ -150,13 +167,34 @@ app.post('/send-queue', async (req, res) => {
     try {
         const results = [];
         const errors = [];
+        const { Email } = require('./models/Email');
 
         for (const emailData of emailQueue) {
             try {
-                await sendHTMLEmail(emailData);
+                // *** Guardar cada correo en la base de datos antes de enviar ***
+                // Asegurarse de que emailData de la cola tenga todos los campos necesarios
+                const createdEmail = await Email.create(emailData);
+                
+                // Usar el objeto de correo creado (con ID) para enviar
+                await sendHTMLEmail(createdEmail.toJSON());
+                
+                // Actualizar el estado en la base de datos a 'sent' después del envío exitoso
+                createdEmail.status = 'sent';
+                createdEmail.sentAt = new Date();
+                await createdEmail.save();
+
                 results.push({ email: emailData.to, status: 'success' });
             } catch (error) {
+                console.error(`Error sending email to ${emailData.to}:`, error);
                 errors.push({ email: emailData.to, error: error.message });
+                
+                // Opcional: actualizar el estado del correo a 'failed' en la base de datos
+                // Si createdEmail está definido:
+                if (createdEmail && createdEmail.status !== 'sent') {
+                    // Asegurarse de que no se marque como failed si ya se marcó como sent
+                    createdEmail.status = 'failed';
+                    await createdEmail.save().catch(dbError => console.error('Error updating email status to failed:', dbError));
+                }
             }
         }
 
@@ -187,6 +225,19 @@ const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
 // Update the sendHTMLEmail function with better error handling
 async function sendHTMLEmail(emailData) {
     try {
+        // Asegurarse de que emailData tenga un ID para el tracking
+        const emailId = emailData.id; // Asumimos que emailData ya tiene un ID asignado desde la base de datos
+
+        if (!emailId) {
+            console.error('Error: emailData does not have an ID for tracking.', emailData);
+            // Decide how to handle this case: throw an error, skip tracking, etc.
+            // For now, we'll throw an error to prevent sending untracked emails.
+            throw new Error('Cannot send email without a valid ID for tracking.');
+        }
+
+        // Obtener la función generateTrackingLink del servicio EmailTrackingService
+        const { generateTrackingLink } = require('./services/emailTracking');
+
         const htmlContent = await ejs.renderFile(
             path.join(__dirname, '../views/email-template.ejs'),
             {
@@ -197,7 +248,10 @@ async function sendHTMLEmail(emailData) {
                 offerPrice: emailData.offerPrice,
                 offerLink: emailData.offerLink,
                 unsubscribeLink: emailData.unsubscribeLink,
-                productImage: emailData.productImage
+                productImage: emailData.productImage,
+                // Pasar la función generateTrackingLink y la URL del pixel a la plantilla
+                trackingLink: (link) => generateTrackingLink(emailId, link),
+                trackingPixel: generateTrackingLink(emailId) // URL para el pixel de apertura
             }
         );
 
@@ -248,6 +302,9 @@ app.post('/send-emails', upload.single('productImage'), async (req, res) => {
             });
             imageUrl = imgbbResponse.display_url;
         }
+        
+        // Generar ID de campaña si no se proporciona (para envíos manuales)
+        const campaignId = `manual_${Date.now()}`;
 
         const emailData = {
             to: req.body.email,
@@ -259,10 +316,22 @@ app.post('/send-emails', upload.single('productImage'), async (req, res) => {
             offerPrice: req.body.offerPrice,
             offerLink: req.body.offerLink || '#',
             unsubscribeLink: '#',
-            productImage: imageUrl // Use the ImgBB URL instead of local path
+            productImage: imageUrl, // Use the ImgBB URL instead of local path
+            campaignId: campaignId // Capturar y asignar campaignId
         };
 
-        const result = await sendHTMLEmail(emailData);
+        // *** Guardar el correo en la base de datos antes de enviar ***
+        const { Email } = require('./models/Email');
+        const createdEmail = await Email.create(emailData);
+        
+        // Usar el objeto de correo creado (con ID) para enviar el email
+        const result = await sendHTMLEmail(createdEmail.toJSON());
+        
+        // Actualizar el estado en la base de datos a 'sent' después del envío exitoso
+        createdEmail.status = 'sent';
+        createdEmail.sentAt = new Date();
+        await createdEmail.save();
+
         res.json({ success: true, message: 'Email sent successfully', result });
     } catch (error) {
         console.error('Error sending email:', error);
@@ -309,12 +378,22 @@ app.post('/preview-email', upload.single('productImage'), async (req, res) => {
             offerPrice: req.body.offerPrice || '',
             offerLink: req.body.offerLink || '#',
             unsubscribeLink: '#',
-            productImage: imageUrl  // Use ImgBB URL instead of local path
+            productImage: imageUrl,  // Use ImgBB URL instead of local path
+            campaignId: req.body.campaignId || 'preview' // Usar campaignId del formulario o 'preview'
         };
+
+        // Obtener la función generateTrackingLink para la vista previa
+        const { generateTrackingLink } = require('./services/emailTracking');
+        const dummyEmailId = 'preview-id'; // Usar un ID ficticio para la vista previa
 
         const htmlContent = await ejs.renderFile(
             path.join(__dirname, '../views/email-template.ejs'),
-            emailData
+            {
+                ...emailData,
+                // Pasar la función generateTrackingLink y la URL del pixel a la plantilla
+                trackingLink: (link) => generateTrackingLink(dummyEmailId, link),
+                trackingPixel: generateTrackingLink(dummyEmailId) // URL para el pixel de apertura con ID ficticio
+            }
         );
 
         res.send(htmlContent);
@@ -398,5 +477,97 @@ app.delete('/queue/:index', (req, res) => {
         }
     } catch (error) {
         res.status(500).json({ success: false, message: 'Error removing email from queue' });
+    }
+});
+
+// Nuevas rutas para seguimiento
+app.get('/track/open/:emailId', async (req, res) => {
+    try {
+        const success = await EmailTrackingService.trackOpen(req.params.emailId);
+        if (success) {
+            // Enviar un pixel de seguimiento transparente
+            res.writeHead(200, { 'Content-Type': 'image/gif' });
+            res.end(Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'));
+        } else {
+            res.status(500).send('Error tracking email open');
+        }
+    } catch (error) {
+        res.status(500).send('Error tracking email open');
+    }
+});
+
+app.get('/track/click/:emailId', async (req, res) => {
+    try {
+        const { link } = req.query;
+        const success = await EmailTrackingService.trackClick(req.params.emailId, link);
+        if (success) {
+            res.redirect(link);
+        } else {
+            res.status(500).send('Error tracking click');
+        }
+    } catch (error) {
+        res.status(500).send('Error tracking click');
+    }
+});
+
+// Rutas para programación de correos
+app.post('/schedule-email', async (req, res) => {
+    try {
+        const { emailData, scheduledFor } = req.body;
+        const scheduledEmail = await EmailScheduler.scheduleEmail(emailData, scheduledFor);
+        res.json({ success: true, email: scheduledEmail });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.get('/scheduled-emails', async (req, res) => {
+    try {
+        const scheduledEmails = await EmailScheduler.getScheduledEmails();
+        res.json({ success: true, emails: scheduledEmails });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.delete('/scheduled-email/:emailId', async (req, res) => {
+    try {
+        const success = await EmailScheduler.cancelScheduledEmail(req.params.emailId);
+        res.json({ success });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Ruta para estadísticas
+app.get('/stats/:campaignId', async (req, res) => {
+    try {
+        const stats = await EmailTrackingService.getEmailStats(req.params.campaignId);
+        res.json({ success: true, stats });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Ruta del dashboard
+app.get('/dashboard', async (req, res) => {
+    try {
+        // Obtener estadísticas generales
+        const stats = await EmailTrackingService.getEmailStats();
+
+        // Obtener correos programados
+        const scheduledEmails = await EmailScheduler.getScheduledEmails();
+
+        // Obtener datos de actividad por día (últimos 7 días)
+        const activityData = await EmailTrackingService.getActivityData();
+
+        res.render('dashboard', {
+            stats,
+            scheduledEmails,
+            activityData
+        });
+    } catch (error) {
+        console.error('Error al cargar el dashboard:', error);
+        res.status(500).send('Error al cargar el dashboard');
     }
 });

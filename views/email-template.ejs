@@ -85,15 +85,17 @@
                 <% if (offerPrice) { %>
                     <p style="font-size: 1.2em; color: #e74c3c;">Precio Especial: $<%= offerPrice %></p>
                 <% } %>
-                <a href="<%= offerLink %>" class="button">Ver Oferta</a>
+                <a href="<%= trackingLink(offerLink) %>" class="button">Ver Oferta</a>
             </div>
             
             <p>¡No te pierdas estas increíbles ofertas!</p>
         </div>
         <div class="footer">
             <p>© <%= new Date().getFullYear() %> <%= companyName %>. Todos los derechos reservados.</p>
-            <p>Si deseas cancelar tu suscripción, <a href="<%= unsubscribeLink %>" style="color: white;">haz clic aquí</a></p>
+            <p>Si deseas cancelar tu suscripción, <a href="<%= trackingLink(unsubscribeLink) %>" style="color: white;">haz clic aquí</a></p>
         </div>
     </div>
+    <!-- Pixel de seguimiento -->
+    <img src="<%= trackingPixel %>" width="1" height="1" alt="" style="display:none">
 </body>
 </html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Sistema de Ofertas</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="dashboard-header">
+            <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
+            <nav class="dashboard-nav">
+                <a href="/dashboard" class="nav-link active"><i class="fas fa-chart-bar"></i> Dashboard</a>
+                <a href="/enviar" class="nav-link"><i class="fas fa-paper-plane"></i> Enviar Correos</a>
+            </nav>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- Tarjetas de estadísticas -->
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <i class="fas fa-paper-plane"></i>
+                    <div class="stat-info">
+                        <h3>Total Enviados</h3>
+                        <p class="stat-number"><%= stats.total %></p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-envelope-open"></i>
+                    <div class="stat-info">
+                        <h3>Aperturas</h3>
+                        <p class="stat-number"><%= stats.opened %></p>
+                        <p class="stat-percentage"><%= ((stats.opened / stats.total) * 100).toFixed(1) %>%</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-mouse-pointer"></i>
+                    <div class="stat-info">
+                        <h3>Clics</h3>
+                        <p class="stat-number"><%= stats.clicks %></p>
+                        <p class="stat-percentage"><%= ((stats.clicks / stats.total) * 100).toFixed(1) %>%</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Rendimiento de Campañas</h3>
+                    <canvas id="campaignChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Actividad por Día</h3>
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabla de correos programados -->
+            <div class="scheduled-emails">
+                <h2><i class="fas fa-clock"></i> Correos Programados</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Destinatario</th>
+                                <th>Asunto</th>
+                                <th>Programado para</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% scheduledEmails.forEach(email => { %>
+                                <tr>
+                                    <td><%= email.to %></td>
+                                    <td><%= email.subject %></td>
+                                    <td><%= new Date(email.scheduledFor).toLocaleString() %></td>
+                                    <td>
+                                        <button onclick="cancelScheduledEmail('<%= email.id %>')" class="btn-cancel">
+                                            <i class="fas fa-times"></i> Cancelar
+                                        </button>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de gráficos
+        const campaignCtx = document.getElementById('campaignChart').getContext('2d');
+        const activityCtx = document.getElementById('activityChart').getContext('2d');
+
+        // Gráfico de rendimiento de campañas
+        new Chart(campaignCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Enviados', 'Aperturas', 'Clics'],
+                datasets: [{
+                    label: 'Métricas de Campaña',
+                    data: [
+                        <%= stats.total %>,
+                        <%= stats.opened %>,
+                        <%= stats.clicks %>
+                    ],
+                    backgroundColor: [
+                        '#3498db',
+                        '#2ecc71',
+                        '#e74c3c'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Gráfico de actividad por día
+        new Chart(activityCtx, {
+            type: 'line',
+            data: {
+                labels: <%= JSON.stringify(activityData.dates) %>,
+                datasets: [{
+                    label: 'Aperturas',
+                    data: <%= JSON.stringify(activityData.opens) %>,
+                    borderColor: '#2ecc71',
+                    tension: 0.1
+                }, {
+                    label: 'Clics',
+                    data: <%= JSON.stringify(activityData.clicks) %>,
+                    borderColor: '#e74c3c',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Función para cancelar correos programados
+        async function cancelScheduledEmail(emailId) {
+            if (confirm('¿Estás seguro de que deseas cancelar este correo programado?')) {
+                try {
+                    const response = await fetch(`/scheduled-email/${emailId}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error al cancelar el correo programado');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al cancelar el correo programado');
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Estilos específicos del dashboard que no están en style.css */
+        .dashboard-grid {
+            display: grid;
+            gap: 30px;
+        }
+
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .stat-card i {
+            font-size: 2.5em;
+            color: var(--primary-color);
+        }
+
+        .stat-info h3 {
+            margin: 0;
+            font-size: 1em;
+            color: #666;
+        }
+
+        .stat-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin: 5px 0;
+            color: var(--text-color);
+        }
+
+        .stat-percentage {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .scheduled-emails {
+            background: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .btn-cancel {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-cancel:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</body>
+</html> 
