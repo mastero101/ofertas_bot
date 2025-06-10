@@ -9,6 +9,7 @@ const EmailScheduler = require('./services/emailScheduler');
 const EmailTrackingService = require('./services/emailTracking');
 const statisticsRoutes = require('./routes/statistics');
 const errorHandler = require('./middleware/errorHandler');
+const { v4: uuidv4 } = require('uuid');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 let fetch;
@@ -66,8 +67,8 @@ app.post('/upload', upload.fields([
             });
         }
 
-        // Generar ID de campaña si no se proporciona
-        const campaignId = `campaign_${Date.now()}`;
+        // Generar ID de campaña usando UUID
+        const campaignId = uuidv4();
 
         // Handle product image upload if present
         let imageUrl = null;
@@ -99,19 +100,25 @@ app.post('/upload', upload.fields([
             });
         }
 
+        // Validar y formatear el offerLink
+        let offerLink = req.body.offerLink || '#';
+        if (offerLink !== '#' && !offerLink.startsWith('http://') && !offerLink.startsWith('https://')) {
+            offerLink = `https://${offerLink}`;
+        }
+
         // Store data in queue with common email content
         emailQueue = data.map(row => ({
             to: row.email,
             customerName: row.customerName || 'Cliente',
-            subject: req.body.subject.trim(),  // Ensure subject is trimmed
+            subject: req.body.subject.trim(),
             companyName: 'HAMSE',
             offerTitle: req.body.offerTitle,
             offerDescription: req.body.offerDescription,
             offerPrice: req.body.offerPrice,
-            offerLink: req.body.offerLink || '#',
+            offerLink: offerLink,
             unsubscribeLink: '#',
             productImage: imageUrl,
-            campaignId: campaignId // Asignar campaignId a cada email en la cola
+            campaignId: campaignId
         }));
 
         res.json({ 
@@ -305,8 +312,14 @@ app.post('/send-emails', upload.single('productImage'), async (req, res) => {
             imageUrl = imgbbResponse.display_url;
         }
         
-        // Generar ID de campaña si no se proporciona (para envíos manuales)
-        const campaignId = `manual_${Date.now()}`;
+        // Generar ID de campaña usando UUID
+        const campaignId = uuidv4();
+
+        // Validar y formatear el offerLink
+        let offerLink = req.body.offerLink || '#';
+        if (offerLink !== '#' && !offerLink.startsWith('http://') && !offerLink.startsWith('https://')) {
+            offerLink = `https://${offerLink}`;
+        }
 
         const emailData = {
             to: req.body.email,
@@ -316,10 +329,10 @@ app.post('/send-emails', upload.single('productImage'), async (req, res) => {
             offerTitle: req.body.offerTitle,
             offerDescription: req.body.offerDescription,
             offerPrice: req.body.offerPrice,
-            offerLink: req.body.offerLink || '#',
+            offerLink: offerLink,
             unsubscribeLink: '#',
-            productImage: imageUrl, // Use the ImgBB URL instead of local path
-            campaignId: campaignId // Capturar y asignar campaignId
+            productImage: imageUrl,
+            campaignId: campaignId
         };
 
         // *** Guardar el correo en la base de datos antes de enviar ***
@@ -337,20 +350,10 @@ app.post('/send-emails', upload.single('productImage'), async (req, res) => {
         res.json({ success: true, message: 'Email sent successfully', result });
     } catch (error) {
         console.error('Error sending email:', error);
-        
-        // Handle specific ZeptoMail errors
-        if (error.message.includes('IP address not allowed')) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'Server IP not authorized. Please contact administrator.',
-                error: 'IP_NOT_WHITELISTED'
-            });
-        }
-        
         res.status(500).json({ 
             success: false, 
-            message: 'Error sending email. Please try again later.',
-            error: error.message
+            message: 'Error sending email',
+            error: error.message 
         });
     }
 });
