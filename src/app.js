@@ -10,6 +10,7 @@ const EmailTrackingService = require('./services/emailTracking');
 const statisticsRoutes = require('./routes/statistics');
 const errorHandler = require('./middleware/errorHandler');
 const { v4: uuidv4 } = require('uuid');
+const Campaign = require('./models/Campaign');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 let fetch;
@@ -69,6 +70,14 @@ app.post('/upload', upload.fields([
 
         // Generar ID de campaña usando UUID
         const campaignId = uuidv4();
+
+        // Crear la campaña primero
+        await Campaign.create({
+            id: campaignId,
+            name: `Campaña ${new Date().toLocaleDateString()}`,
+            description: req.body.subject,
+            status: 'active'
+        });
 
         // Handle product image upload if present
         let imageUrl = null;
@@ -314,6 +323,14 @@ app.post('/send-emails', upload.single('productImage'), async (req, res) => {
         
         // Generar ID de campaña usando UUID
         const campaignId = uuidv4();
+
+        // Crear la campaña primero
+        await Campaign.create({
+            id: campaignId,
+            name: `Campaña Manual ${new Date().toLocaleDateString()}`,
+            description: req.body.subject,
+            status: 'active'
+        });
 
         // Validar y formatear el offerLink
         let offerLink = req.body.offerLink || '#';
