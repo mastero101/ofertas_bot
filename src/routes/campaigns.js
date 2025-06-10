@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Campaign = require('../models/Campaign');
 const { Email } = require('../models/Email');
+const EmailClick = require('../models/EmailClick');
 const { sendHTMLEmail } = require('../services/emailService');
+const { sequelize } = require('../config/database');
 
 // Obtener todas las campañas
 router.get('/', async (req, res) => {
@@ -10,10 +12,35 @@ router.get('/', async (req, res) => {
         const campaigns = await Campaign.findAll({
             order: [['createdAt', 'DESC']]
         });
-        res.render('campaigns', { campaigns });
+
+        const campaignsWithStats = await Promise.all(campaigns.map(async (campaign) => {
+            const totalEmails = await Email.count({ where: { campaignId: campaign.id } });
+            const sentEmails = await Email.count({ where: { campaignId: campaign.id, status: 'sent' } });
+            const openedEmails = await Email.count({ where: { campaignId: campaign.id, trackingOpened: true } });
+            const failedEmails = await Email.count({ where: { campaignId: campaign.id, status: 'failed' } });
+            
+            const clickedEmails = await EmailClick.count({
+                include: [{
+                    model: Email,
+                    where: { campaignId: campaign.id },
+                    attributes: []
+                }]
+            });
+
+            return {
+                ...campaign.toJSON(),
+                totalEmails,
+                sentEmails,
+                openedEmails,
+                clickedEmails,
+                failedEmails
+            };
+        }));
+
+        res.render('campaigns', { campaigns: campaignsWithStats });
     } catch (error) {
-        console.error('Error al obtener campañas:', error);
-        res.status(500).json({ error: 'Error al obtener campañas' });
+        console.error('Error al obtener campañas y estadísticas:', error);
+        res.status(500).json({ error: 'Error al obtener campañas y estadísticas' });
     }
 });
 
@@ -84,6 +111,32 @@ router.post('/emails/:emailId/resend', async (req, res) => {
     } catch (error) {
         console.error('Error al reenviar el correo:', error);
         res.status(500).json({ error: 'Error al reenviar el correo' });
+    }
+});
+
+// Eliminar una campaña y sus correos asociados
+router.delete('/:campaignId', async (req, res) => {
+    try {
+        const campaignId = req.params.campaignId;
+
+        // Eliminar todos los correos asociados a la campaña
+        await Email.destroy({
+            where: { campaignId: campaignId }
+        });
+
+        // Eliminar la campaña
+        const deleted = await Campaign.destroy({
+            where: { id: campaignId }
+        });
+
+        if (deleted) {
+            res.json({ message: 'Campaña y correos asociados eliminados exitosamente' });
+        } else {
+            res.status(404).json({ error: 'Campaña no encontrada' });
+        }
+    } catch (error) {
+        console.error('Error al eliminar la campaña:', error);
+        res.status(500).json({ error: 'Error al eliminar la campaña' });
     }
 });
 

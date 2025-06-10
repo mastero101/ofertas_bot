@@ -506,30 +506,26 @@ app.delete('/queue/:index', (req, res) => {
 // Nuevas rutas para seguimiento
 app.get('/track/open/:emailId', async (req, res) => {
     try {
-        const success = await EmailTrackingService.trackOpen(req.params.emailId);
-        if (success) {
-            // Enviar un pixel de seguimiento transparente
-            res.writeHead(200, { 'Content-Type': 'image/gif' });
-            res.end(Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'));
-        } else {
-            res.status(500).send('Error tracking email open');
-        }
+        await EmailTrackingService.trackOpen(req.params.emailId);
+        // Enviar una imagen de 1x1 píxel para el seguimiento
+        res.sendFile(path.join(__dirname, '../public/images/tracking_pixel.png'));
     } catch (error) {
-        res.status(500).send('Error tracking email open');
+        console.error('Error recording email open:', error);
+        res.status(500).send('Error de seguimiento');
     }
 });
 
 app.get('/track/click/:emailId', async (req, res) => {
     try {
         const { link } = req.query;
-        const success = await EmailTrackingService.trackClick(req.params.emailId, link);
-        if (success) {
-            res.redirect(link);
-        } else {
-            res.status(500).send('Error tracking click');
+        if (!link) {
+            return res.status(400).send('Enlace no proporcionado');
         }
+        await EmailTrackingService.trackClick(req.params.emailId, decodeURIComponent(link));
+        res.redirect(decodeURIComponent(link)); // Redirigir al usuario al enlace original
     } catch (error) {
-        res.status(500).send('Error tracking click');
+        console.error('Error recording email click:', error);
+        res.status(500).send('Error de seguimiento de clics');
     }
 });
 

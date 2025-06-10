@@ -89,6 +89,9 @@
                                                     <i class="fas fa-play"></i> Reanudar
                                                 </button>
                                             <% } %>
+                                            <button onclick="deleteCampaign('<%= campaign.id %>')" class="btn btn-sm btn-danger ms-2">
+                                                <i class="fas fa-trash"></i> Eliminar Campaña
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -210,6 +213,24 @@
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error al reenviar el correo');
+            }
+        }
+
+        async function deleteCampaign(campaignId) {
+            if (confirm('¿Está seguro de que desea eliminar esta campaña? Todos los correos asociados también se eliminarán.')) {
+                try {
+                    const response = await fetch(`/api/campaigns/${campaignId}`, { method: 'DELETE' });
+                    if (response.ok) {
+                        alert('Campaña eliminada exitosamente');
+                        location.reload(); // Recargar la página para reflejar los cambios
+                    } else {
+                        const errorData = await response.json();
+                        alert('Error al eliminar la campaña: ' + (errorData.error || response.statusText));
+                    }
+                } catch (error) {
+                    console.error('Error al eliminar la campaña:', error);
+                    alert('Error de red o servidor al intentar eliminar la campaña.');
+                }
             }
         }
     </script>
