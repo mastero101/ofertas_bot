@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Campañas - HAMSE</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="dashboard-header">
+            <h1><i class="fas fa-bullhorn"></i> Campañas</h1>
+            <nav class="dashboard-nav">
+                <a href="/dashboard" class="nav-link"><i class="fas fa-chart-bar"></i> Dashboard</a>
+                <a href="/enviar" class="nav-link"><i class="fas fa-paper-plane"></i> Enviar Correos</a>
+                <a href="/campaigns" class="nav-link active"><i class="fas fa-bullhorn"></i> Campañas</a>
+            </nav>
+        </header>
+
+        <div class="campaigns-container">
+            <div class="campaigns-list">
+                <h2>Campañas Activas</h2>
+                <div class="campaigns-grid">
+                    <% campaigns.forEach(campaign => { %>
+                        <div class="campaign-card">
+                            <div class="campaign-header">
+                                <h3><%= campaign.name %></h3>
+                                <span class="campaign-status <%= campaign.status %>"><%= campaign.status %></span>
+                            </div>
+                            <div class="campaign-stats">
+                                <div class="stat">
+                                    <i class="fas fa-envelope"></i>
+                                    <span>Total: <%= campaign.totalEmails %></span>
+                                </div>
+                                <div class="stat">
+                                    <i class="fas fa-paper-plane"></i>
+                                    <span>Enviados: <%= campaign.sentEmails %></span>
+                                </div>
+                                <div class="stat">
+                                    <i class="fas fa-envelope-open"></i>
+                                    <span>Abiertos: <%= campaign.openedEmails %></span>
+                                </div>
+                                <div class="stat">
+                                    <i class="fas fa-mouse-pointer"></i>
+                                    <span>Clics: <%= campaign.clickedEmails %></span>
+                                </div>
+                            </div>
+                            <div class="campaign-details">
+                                <p><strong>Descripción:</strong> <%= campaign.description %></p>
+                                <p><strong>Creada:</strong> <%= new Date(campaign.createdAt).toLocaleString() %></p>
+                                <% if (campaign.scheduledStart) { %>
+                                    <p><strong>Inicio:</strong> <%= new Date(campaign.scheduledStart).toLocaleString() %></p>
+                                <% } %>
+                                <% if (campaign.scheduledEnd) { %>
+                                    <p><strong>Fin:</strong> <%= new Date(campaign.scheduledEnd).toLocaleString() %></p>
+                                <% } %>
+                            </div>
+                            <div class="campaign-actions">
+                                <button onclick="viewCampaignEmails('<%= campaign.id %>')" class="btn-view">
+                                    <i class="fas fa-list"></i> Ver Correos
+                                </button>
+                                <% if (campaign.status === 'active') { %>
+                                    <button onclick="pauseCampaign('<%= campaign.id %>')" class="btn-pause">
+                                        <i class="fas fa-pause"></i> Pausar
+                                    </button>
+                                <% } else if (campaign.status === 'paused') { %>
+                                    <button onclick="resumeCampaign('<%= campaign.id %>')" class="btn-resume">
+                                        <i class="fas fa-play"></i> Reanudar
+                                    </button>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para ver correos de la campaña -->
+    <div id="emailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeEmailsModal()">&times;</span>
+            <h2>Correos de la Campaña</h2>
+            <div class="emails-list">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Destinatario</th>
+                            <th>Asunto</th>
+                            <th>Estado</th>
+                            <th>Enviado</th>
+                            <th>Abierto</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="emailsTableBody">
+                        <!-- Los correos se cargarán aquí dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function viewCampaignEmails(campaignId) {
+            try {
+                const response = await fetch(`/api/campaigns/${campaignId}/emails`);
+                const emails = await response.json();
+                
+                const tbody = document.getElementById('emailsTableBody');
+                tbody.innerHTML = emails.map(email => `
+                    <tr>
+                        <td>${email.to}</td>
+                        <td>${email.subject}</td>
+                        <td><span class="status ${email.status}">${email.status}</span></td>
+                        <td>${email.sentAt ? new Date(email.sentAt).toLocaleString() : '-'}</td>
+                        <td>${email.trackingOpened ? 'Sí' : 'No'}</td>
+                        <td>
+                            <button onclick="resendEmail('${email.id}')" class="btn-resend">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                document.getElementById('emailsModal').style.display = 'block';
+            } catch (error) {
+                console.error('Error al cargar los correos:', error);
+                alert('Error al cargar los correos de la campaña');
+            }
+        }
+
+        function closeEmailsModal() {
+            document.getElementById('emailsModal').style.display = 'none';
+        }
+
+        async function pauseCampaign(campaignId) {
+            try {
+                const response = await fetch(`/api/campaigns/${campaignId}/pause`, { method: 'POST' });
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('Error al pausar la campaña');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al pausar la campaña');
+            }
+        }
+
+        async function resumeCampaign(campaignId) {
+            try {
+                const response = await fetch(`/api/campaigns/${campaignId}/resume`, { method: 'POST' });
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('Error al reanudar la campaña');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al reanudar la campaña');
+            }
+        }
+
+        async function resendEmail(emailId) {
+            try {
+                const response = await fetch(`/api/emails/${emailId}/resend`, { method: 'POST' });
+                if (response.ok) {
+                    alert('Correo reenviado exitosamente');
+                    viewCampaignEmails(currentCampaignId);
+                } else {
+                    alert('Error al reenviar el correo');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al reenviar el correo');
+            }
+        }
+    </script>
+</body>
+</html> 

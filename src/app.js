@@ -11,6 +11,7 @@ const statisticsRoutes = require('./routes/statistics');
 const errorHandler = require('./middleware/errorHandler');
 const { v4: uuidv4 } = require('uuid');
 const Campaign = require('./models/Campaign');
+const campaignsRoutes = require('./routes/campaigns');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 let fetch;
@@ -592,6 +593,12 @@ app.get('/dashboard', async (req, res) => {
 
 // Rutas de estadísticas
 app.use('/api/statistics', statisticsRoutes);
+
+// Rutas de campañas
+app.use('/api/campaigns', campaignsRoutes);
+app.get('/campaigns', (req, res) => {
+    res.redirect('/api/campaigns');
+});
 
 // Middleware de manejo de errores (debe ir después de todas las rutas)
 app.use(errorHandler);
