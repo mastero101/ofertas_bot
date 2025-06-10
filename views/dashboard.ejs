@@ -1,280 +1,248 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Sistema de Ofertas</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css" rel="stylesheet">
+    <link href="/css/dashboard.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <header class="dashboard-header">
-            <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
-            <nav class="dashboard-nav">
-                <a href="/dashboard" class="nav-link active"><i class="fas fa-chart-bar"></i> Dashboard</a>
-                <a href="/enviar" class="nav-link"><i class="fas fa-paper-plane"></i> Enviar Correos</a>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/dashboard">
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/enviar">
+                                Enviar Ofertas
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/campaigns">
+                                Campañas
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </nav>
-        </header>
 
-        <div class="dashboard-grid">
-            <!-- Tarjetas de estadísticas -->
-            <div class="stats-cards">
-                <div class="stat-card">
-                    <i class="fas fa-paper-plane"></i>
-                    <div class="stat-info">
-                        <h3>Total Enviados</h3>
-                        <p class="stat-number"><%= stats.total %></p>
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Dashboard</h1>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Enviados</h5>
+                                <h2 class="card-text" id="totalSent">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Abiertos</h5>
+                                <h2 class="card-text" id="totalOpened">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Clics</h5>
+                                <h2 class="card-text" id="totalClicks">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Fallidos</h5>
+                                <h2 class="card-text" id="totalFailed">0</h2>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <i class="fas fa-envelope-open"></i>
-                    <div class="stat-info">
-                        <h3>Aperturas</h3>
-                        <p class="stat-number"><%= stats.opened %></p>
-                        <p class="stat-percentage"><%= ((stats.opened / stats.total) * 100).toFixed(1) %>%</p>
+
+                <!-- Activity Chart -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Actividad por Día</h5>
+                                <canvas id="activityChart"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <i class="fas fa-mouse-pointer"></i>
-                    <div class="stat-info">
-                        <h3>Clics</h3>
-                        <p class="stat-number"><%= stats.clicks %></p>
-                        <p class="stat-percentage"><%= ((stats.clicks / stats.total) * 100).toFixed(1) %>%</p>
+
+                <!-- Scheduled Emails -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Correos Programados</h5>
+                                <div class="table-responsive">
+                                    <table class="table" id="scheduledEmailsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Destinatario</th>
+                                                <th>Asunto</th>
+                                                <th>Programado para</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Gráficos -->
-            <div class="charts-container">
-                <div class="chart-card">
-                    <h3>Rendimiento de Campañas</h3>
-                    <canvas id="campaignChart"></canvas>
-                </div>
-                <div class="chart-card">
-                    <h3>Actividad por Día</h3>
-                    <canvas id="activityChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Tabla de correos programados -->
-            <div class="scheduled-emails">
-                <h2><i class="fas fa-clock"></i> Correos Programados</h2>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Destinatario</th>
-                                <th>Asunto</th>
-                                <th>Programado para</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% scheduledEmails.forEach(email => { %>
-                                <tr>
-                                    <td><%= email.to %></td>
-                                    <td><%= email.subject %></td>
-                                    <td><%= new Date(email.scheduledFor).toLocaleString() %></td>
-                                    <td>
-                                        <button onclick="cancelScheduledEmail('<%= email.id %>')" class="btn-cancel">
-                                            <i class="fas fa-times"></i> Cancelar
-                                        </button>
-                                    </td>
-                                </tr>
-                            <% }); %>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            </main>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
     <script>
-        // Configuración de gráficos
-        const campaignCtx = document.getElementById('campaignChart').getContext('2d');
-        const activityCtx = document.getElementById('activityChart').getContext('2d');
-
-        // Gráfico de rendimiento de campañas
-        new Chart(campaignCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Enviados', 'Aperturas', 'Clics'],
-                datasets: [{
-                    label: 'Métricas de Campaña',
-                    data: [
-                        <%= stats.total %>,
-                        <%= stats.opened %>,
-                        <%= stats.clicks %>
-                    ],
-                    backgroundColor: [
-                        '#3498db',
-                        '#2ecc71',
-                        '#e74c3c'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
+        // Función para cargar las estadísticas generales
+        async function loadGeneralStats() {
+            try {
+                const response = await fetch('/api/statistics/general');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('totalSent').textContent = data.data.sent || 0;
+                    document.getElementById('totalOpened').textContent = data.data.opened || 0;
+                    document.getElementById('totalFailed').textContent = data.data.failed || 0;
                 }
+            } catch (error) {
+                console.error('Error loading general stats:', error);
             }
-        });
+        }
 
-        // Gráfico de actividad por día
-        new Chart(activityCtx, {
-            type: 'line',
-            data: {
-                labels: <%= JSON.stringify(activityData.dates) %>,
-                datasets: [{
-                    label: 'Aperturas',
-                    data: <%= JSON.stringify(activityData.opens) %>,
-                    borderColor: '#2ecc71',
-                    tension: 0.1
-                }, {
-                    label: 'Clics',
-                    data: <%= JSON.stringify(activityData.clicks) %>,
-                    borderColor: '#e74c3c',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
+        // Función para cargar las estadísticas diarias
+        async function loadDailyStats() {
+            try {
+                const response = await fetch('/api/statistics/daily?days=7');
+                const data = await response.json();
+                if (data.success) {
+                    const dates = data.data.map(item => item.date);
+                    const sent = data.data.map(item => item.sent);
+                    const opened = data.data.map(item => item.opened);
+                    const failed = data.data.map(item => item.failed);
+
+                    const ctx = document.getElementById('activityChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: dates,
+                            datasets: [
+                                {
+                                    label: 'Enviados',
+                                    data: sent,
+                                    borderColor: 'rgb(75, 192, 192)',
+                                    tension: 0.1
+                                },
+                                {
+                                    label: 'Abiertos',
+                                    data: opened,
+                                    borderColor: 'rgb(255, 99, 132)',
+                                    tension: 0.1
+                                },
+                                {
+                                    label: 'Fallidos',
+                                    data: failed,
+                                    borderColor: 'rgb(255, 159, 64)',
+                                    tension: 0.1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
                 }
+            } catch (error) {
+                console.error('Error loading daily stats:', error);
             }
-        });
+        }
 
-        // Función para cancelar correos programados
-        async function cancelScheduledEmail(emailId) {
-            if (confirm('¿Estás seguro de que deseas cancelar este correo programado?')) {
+        // Función para cargar los correos programados
+        async function loadScheduledEmails() {
+            try {
+                const response = await fetch('/api/statistics/scheduled');
+                const data = await response.json();
+                if (data.success) {
+                    const tbody = document.querySelector('#scheduledEmailsTable tbody');
+                    tbody.innerHTML = '';
+                    
+                    data.data.forEach(email => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${email.to}</td>
+                            <td>${email.subject}</td>
+                            <td>${new Date(email.scheduledFor).toLocaleString()}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="editScheduledEmail('${email.id}')">Editar</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteScheduledEmail('${email.id}')">Eliminar</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading scheduled emails:', error);
+            }
+        }
+
+        // Función para editar un correo programado
+        async function editScheduledEmail(emailId) {
+            // Implementar lógica de edición
+            console.log('Edit email:', emailId);
+        }
+
+        // Función para eliminar un correo programado
+        async function deleteScheduledEmail(emailId) {
+            if (confirm('¿Estás seguro de que deseas eliminar este correo programado?')) {
                 try {
-                    const response = await fetch(`/scheduled-email/${emailId}`, {
+                    const response = await fetch(`/api/statistics/scheduled/${emailId}`, {
                         method: 'DELETE'
                     });
                     const data = await response.json();
-                    
                     if (data.success) {
-                        location.reload();
-                    } else {
-                        alert('Error al cancelar el correo programado');
+                        loadScheduledEmails();
                     }
                 } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error al cancelar el correo programado');
+                    console.error('Error deleting scheduled email:', error);
                 }
             }
         }
+
+        // Cargar datos al iniciar
+        document.addEventListener('DOMContentLoaded', () => {
+            loadGeneralStats();
+            loadDailyStats();
+            loadScheduledEmails();
+        });
     </script>
-
-    <style>
-        /* Estilos específicos del dashboard que no están en style.css */
-        .dashboard-grid {
-            display: grid;
-            gap: 30px;
-        }
-
-        .stats-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: var(--border-radius);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .stat-card i {
-            font-size: 2.5em;
-            color: var(--primary-color);
-        }
-
-        .stat-info h3 {
-            margin: 0;
-            font-size: 1em;
-            color: #666;
-        }
-
-        .stat-number {
-            font-size: 1.8em;
-            font-weight: bold;
-            margin: 5px 0;
-            color: var(--text-color);
-        }
-
-        .stat-percentage {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .charts-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
-        }
-
-        .chart-card {
-            background: white;
-            padding: 20px;
-            border-radius: var(--border-radius);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .scheduled-emails {
-            background: white;
-            padding: 20px;
-            border-radius: var(--border-radius);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .table-container {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-
-        th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-        }
-
-        .btn-cancel {
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .btn-cancel:hover {
-            background-color: #c0392b;
-        }
-    </style>
 </body>
 </html> 

@@ -7,6 +7,8 @@ const imgbbUploader = require('imgbb-uploader');
 const { connectDB } = require('./config/database');
 const EmailScheduler = require('./services/emailScheduler');
 const EmailTrackingService = require('./services/emailTracking');
+const statisticsRoutes = require('./routes/statistics');
+const errorHandler = require('./middleware/errorHandler');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 let fetch;
@@ -549,25 +551,27 @@ app.get('/stats/:campaignId', async (req, res) => {
     }
 });
 
-// Ruta del dashboard
+// Rutas principales
 app.get('/dashboard', async (req, res) => {
     try {
-        // Obtener estadísticas generales
-        const stats = await EmailTrackingService.getEmailStats();
-
-        // Obtener correos programados
-        const scheduledEmails = await EmailScheduler.getScheduledEmails();
-
-        // Obtener datos de actividad por día (últimos 7 días)
-        const activityData = await EmailTrackingService.getActivityData();
-
+        const StatisticsService = require('./services/statisticsService');
+        const generalStats = await StatisticsService.getGeneralStats();
+        const dailyStats = await StatisticsService.getDailyStats();
+        const scheduledEmails = await StatisticsService.getScheduledEmails();
+        
         res.render('dashboard', {
-            stats,
-            scheduledEmails,
-            activityData
+            stats: generalStats,
+            dailyStats: dailyStats,
+            scheduledEmails: scheduledEmails
         });
     } catch (error) {
-        console.error('Error al cargar el dashboard:', error);
-        res.status(500).send('Error al cargar el dashboard');
+        console.error('Error loading dashboard:', error);
+        res.status(500).render('error', { message: 'Error al cargar el dashboard' });
     }
 });
+
+// Rutas de estadísticas
+app.use('/api/statistics', statisticsRoutes);
+
+// Middleware de manejo de errores (debe ir después de todas las rutas)
+app.use(errorHandler);

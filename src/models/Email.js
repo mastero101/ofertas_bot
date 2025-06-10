@@ -47,19 +47,25 @@ const Email = sequelize.define('Email', {
     },
     trackingOpened: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false
+        defaultValue: false,
+        field: 'trackingOpened'
     },
     trackingOpenedAt: {
         type: DataTypes.DATE
     },
     campaignId: {
-        type: DataTypes.STRING
+        type: DataTypes.UUID,
+        references: {
+            model: 'Campaigns',
+            key: 'id'
+        }
     },
     templateId: {
-        type: DataTypes.STRING
+        type: DataTypes.UUID
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    tableName: 'Emails'
 });
 
 // Modelo para el seguimiento de clics
