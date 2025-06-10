@@ -26,7 +26,47 @@ class StatisticsService {
             order: [[sequelize.fn('date', sequelize.col('createdAt')), 'ASC']]
         });
 
-        return dailyStats;
+        // Obtener clics por día
+        const dailyClicks = await EmailClick.findAll({
+            attributes: [
+                [sequelize.fn('date', sequelize.col('clickedAt')), 'date'],
+                [sequelize.fn('count', sequelize.col('id')), 'clicks']
+            ],
+            where: {
+                clickedAt: {
+                    [Op.gte]: startDate
+                }
+            },
+            group: [sequelize.fn('date', sequelize.col('clickedAt'))],
+            order: [[sequelize.fn('date', sequelize.col('clickedAt')), 'ASC']]
+        });
+
+        // Combinar estadísticas de correos y clics
+        const combinedStats = {};
+        dailyStats.forEach(stat => {
+            const date = stat.get('date');
+            combinedStats[date] = { ...stat.toJSON(), clicks: 0 };
+        });
+
+        dailyClicks.forEach(clickStat => {
+            const date = clickStat.get('date');
+            if (combinedStats[date]) {
+                combinedStats[date].clicks = clickStat.get('clicks');
+            } else {
+                combinedStats[date] = { date, total: 0, sent: 0, opened: 0, failed: 0, clicks: clickStat.get('clicks') };
+            }
+        });
+
+        // Asegurar que todos los días en el rango tengan datos (0 si no hay actividad)
+        const result = [];
+        for (let i = days - 1; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
+            result.push(combinedStats[dateStr] || { date: dateStr, total: 0, sent: 0, opened: 0, failed: 0, clicks: 0 });
+        }
+
+        return result;
     }
 
     // Obtener estadísticas de campaña
