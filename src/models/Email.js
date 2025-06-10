@@ -94,6 +94,11 @@ const Email = sequelize.define('Email', {
         validate: {
             isUUID: 4
         }
+    },
+    zeptoRequestId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'ID de solicitud de ZeptoMail para seguimiento'
     }
 }, {
     timestamps: true,

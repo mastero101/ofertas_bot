@@ -1,5 +1,6 @@
 const ejs = require('ejs');
 const path = require('path');
+const { Email } = require('../models/Email');
 
 const ZEPTO_API_KEY = process.env.ZEPTO_API_KEY;
 const ZEPTO_FROM_EMAIL = process.env.ZEPTO_FROM_EMAIL;
@@ -46,16 +47,20 @@ async function sendHTMLEmail(emailData) {
             })
         });
 
-        const responseData = await response.text();
+        const responseData = await response.json();
         console.log('ZeptoMail API Response:', responseData);
 
-        if (!response.ok) {
-            throw new Error(`Email sending failed: ${response.status} - ${response.statusText} - ${responseData}`);
+        // Guardar el request_id en la base de datos
+        if (responseData.request_id) {
+            await Email.update(
+                { zeptoRequestId: responseData.request_id },
+                { where: { id: emailData.id } }
+            );
         }
 
-        return JSON.parse(responseData);
+        return responseData;
     } catch (error) {
-        console.error('Detailed error:', error);
+        console.error('Error sending email:', error);
         throw error;
     }
 }
