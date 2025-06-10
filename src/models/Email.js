@@ -9,7 +9,10 @@ const Email = sequelize.define('Email', {
     },
     to: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        validate: {
+            isEmail: true
+        }
     },
     customerName: {
         type: DataTypes.STRING,
@@ -17,51 +20,80 @@ const Email = sequelize.define('Email', {
     },
     subject: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        validate: {
+            notEmpty: true
+        }
     },
     offerTitle: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        validate: {
+            notEmpty: true
+        }
     },
     offerDescription: {
-        type: DataTypes.TEXT
+        type: DataTypes.TEXT,
+        allowNull: true
     },
     offerPrice: {
-        type: DataTypes.DECIMAL(10, 2)
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        validate: {
+            isDecimal: true
+        }
     },
     offerLink: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: {
+            isUrl: true
+        }
     },
     productImage: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: {
+            isUrl: true
+        }
     },
     status: {
         type: DataTypes.ENUM('pending', 'scheduled', 'sent', 'failed'),
         defaultValue: 'pending'
     },
     scheduledFor: {
-        type: DataTypes.DATE
+        type: DataTypes.DATE,
+        allowNull: true
     },
     sentAt: {
-        type: DataTypes.DATE
+        type: DataTypes.DATE,
+        allowNull: true
     },
     trackingOpened: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false,
-        field: 'trackingOpened'
+        defaultValue: false
     },
     trackingOpenedAt: {
-        type: DataTypes.DATE
+        type: DataTypes.DATE,
+        allowNull: true
     },
     campaignId: {
         type: DataTypes.UUID,
+        allowNull: false,
         references: {
             model: 'Campaigns',
             key: 'id'
+        },
+        validate: {
+            isUUID: 4
         }
     },
     templateId: {
-        type: DataTypes.UUID
+        type: DataTypes.UUID,
+        allowNull: true,
+        validate: {
+            isUUID: 4
+        }
     }
 }, {
     timestamps: true,
