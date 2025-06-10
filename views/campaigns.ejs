@@ -1,108 +1,142 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Campañas - HAMSE</title>
-    <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/dashboard.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <header class="dashboard-header">
-            <h1><i class="fas fa-bullhorn"></i> Campañas</h1>
-            <nav class="dashboard-nav">
-                <a href="/dashboard" class="nav-link"><i class="fas fa-chart-bar"></i> Dashboard</a>
-                <a href="/enviar" class="nav-link"><i class="fas fa-paper-plane"></i> Enviar Correos</a>
-                <a href="/campaigns" class="nav-link active"><i class="fas fa-bullhorn"></i> Campañas</a>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/dashboard">
+                                <i class="fas fa-chart-bar"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/enviar">
+                                <i class="fas fa-paper-plane"></i> Enviar Ofertas
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/campaigns">
+                                <i class="fas fa-bullhorn"></i> Campañas
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </nav>
-        </header>
 
-        <div class="campaigns-container">
-            <div class="campaigns-list">
-                <h2>Campañas Activas</h2>
-                <div class="campaigns-grid">
-                    <% campaigns.forEach(campaign => { %>
-                        <div class="campaign-card">
-                            <div class="campaign-header">
-                                <h3><%= campaign.name %></h3>
-                                <span class="campaign-status <%= campaign.status %>"><%= campaign.status %></span>
-                            </div>
-                            <div class="campaign-stats">
-                                <div class="stat">
-                                    <i class="fas fa-envelope"></i>
-                                    <span>Total: <%= campaign.totalEmails %></span>
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2"><i class="fas fa-bullhorn"></i> Campañas</h1>
+                </div>
+
+                <div class="campaigns-container">
+                    <div class="campaigns-list">
+                        <h2 class="h5 mb-3">Campañas Activas</h2>
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                            <% campaigns.forEach(campaign => { %>
+                                <div class="col">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <h5 class="card-title mb-0"><%= campaign.name %></h5>
+                                                <span class="badge <%= campaign.status === 'active' ? 'bg-success' : campaign.status === 'paused' ? 'bg-warning text-dark' : 'bg-secondary' %>"><%= campaign.status %></span>
+                                            </div>
+                                            <div class="row mb-3 text-muted small">
+                                                <div class="col-6">
+                                                    <i class="fas fa-envelope"></i> Total: <%= campaign.totalEmails %>
+                                                </div>
+                                                <div class="col-6">
+                                                    <i class="fas fa-paper-plane"></i> Enviados: <%= campaign.sentEmails %>
+                                                </div>
+                                                <div class="col-6">
+                                                    <i class="fas fa-envelope-open"></i> Abiertos: <%= campaign.openedEmails %>
+                                                </div>
+                                                <div class="col-6">
+                                                    <i class="fas fa-mouse-pointer"></i> Clics: <%= campaign.clickedEmails %>
+                                                </div>
+                                            </div>
+                                            <p class="card-text text-muted small"><strong>Descripción:</strong> <%= campaign.description %></p>
+                                            <p class="card-text text-muted small"><strong>Creada:</strong> <%= new Date(campaign.createdAt).toLocaleString() %></p>
+                                            <% if (campaign.scheduledStart) { %>
+                                                <p class="card-text text-muted small"><strong>Inicio:</strong> <%= new Date(campaign.scheduledStart).toLocaleString() %></p>
+                                            <% } %>
+                                            <% if (campaign.scheduledEnd) { %>
+                                                <p class="card-text text-muted small"><strong>Fin:</strong> <%= new Date(campaign.scheduledEnd).toLocaleString() %></p>
+                                            <% } %>
+                                        </div>
+                                        <div class="card-footer d-flex justify-content-between">
+                                            <button onclick="viewCampaignEmails('<%= campaign.id %>')" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-list"></i> Ver Correos
+                                            </button>
+                                            <% if (campaign.status === 'active') { %>
+                                                <button onclick="pauseCampaign('<%= campaign.id %>')" class="btn btn-sm btn-warning text-dark">
+                                                    <i class="fas fa-pause"></i> Pausar
+                                                </button>
+                                            <% } else if (campaign.status === 'paused') { %>
+                                                <button onclick="resumeCampaign('<%= campaign.id %>')" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-play"></i> Reanudar
+                                                </button>
+                                            <% } %>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="stat">
-                                    <i class="fas fa-paper-plane"></i>
-                                    <span>Enviados: <%= campaign.sentEmails %></span>
-                                </div>
-                                <div class="stat">
-                                    <i class="fas fa-envelope-open"></i>
-                                    <span>Abiertos: <%= campaign.openedEmails %></span>
-                                </div>
-                                <div class="stat">
-                                    <i class="fas fa-mouse-pointer"></i>
-                                    <span>Clics: <%= campaign.clickedEmails %></span>
-                                </div>
-                            </div>
-                            <div class="campaign-details">
-                                <p><strong>Descripción:</strong> <%= campaign.description %></p>
-                                <p><strong>Creada:</strong> <%= new Date(campaign.createdAt).toLocaleString() %></p>
-                                <% if (campaign.scheduledStart) { %>
-                                    <p><strong>Inicio:</strong> <%= new Date(campaign.scheduledStart).toLocaleString() %></p>
-                                <% } %>
-                                <% if (campaign.scheduledEnd) { %>
-                                    <p><strong>Fin:</strong> <%= new Date(campaign.scheduledEnd).toLocaleString() %></p>
-                                <% } %>
-                            </div>
-                            <div class="campaign-actions">
-                                <button onclick="viewCampaignEmails('<%= campaign.id %>')" class="btn-view">
-                                    <i class="fas fa-list"></i> Ver Correos
-                                </button>
-                                <% if (campaign.status === 'active') { %>
-                                    <button onclick="pauseCampaign('<%= campaign.id %>')" class="btn-pause">
-                                        <i class="fas fa-pause"></i> Pausar
-                                    </button>
-                                <% } else if (campaign.status === 'paused') { %>
-                                    <button onclick="resumeCampaign('<%= campaign.id %>')" class="btn-resume">
-                                        <i class="fas fa-play"></i> Reanudar
-                                    </button>
-                                <% } %>
-                            </div>
+                            <% }); %>
                         </div>
-                    <% }); %>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal para ver correos de la campaña -->
+    <div id="emailsModal" class="modal fade" tabindex="-1" aria-labelledby="emailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="emailsModalLabel">Correos de la Campaña</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Destinatario</th>
+                                    <th>Asunto</th>
+                                    <th>Estado</th>
+                                    <th>Enviado</th>
+                                    <th>Abierto</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="emailsTableBody">
+                                <!-- Los correos se cargarán aquí dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal para ver correos de la campaña -->
-    <div id="emailsModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="closeEmailsModal()">&times;</span>
-            <h2>Correos de la Campaña</h2>
-            <div class="emails-list">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Destinatario</th>
-                            <th>Asunto</th>
-                            <th>Estado</th>
-                            <th>Enviado</th>
-                            <th>Abierto</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="emailsTableBody">
-                        <!-- Los correos se cargarán aquí dinámicamente -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        let currentCampaignId = null; // Variable para almacenar el ID de la campaña actual
+
         async function viewCampaignEmails(campaignId) {
+            currentCampaignId = campaignId; // Almacenar el ID de la campaña
             try {
                 const response = await fetch(`/api/campaigns/${campaignId}/emails`);
                 const emails = await response.json();
@@ -112,27 +146,26 @@
                     <tr>
                         <td>${email.to}</td>
                         <td>${email.subject}</td>
-                        <td><span class="status ${email.status}">${email.status}</span></td>
+                        <td><span class="badge ${email.status === 'sent' ? 'bg-success' : email.status === 'pending' ? 'bg-warning text-dark' : 'bg-danger'}">${email.status}</span></td>
                         <td>${email.sentAt ? new Date(email.sentAt).toLocaleString() : '-'}</td>
                         <td>${email.trackingOpened ? 'Sí' : 'No'}</td>
                         <td>
-                            <button onclick="resendEmail('${email.id}')" class="btn-resend">
+                            <button onclick="resendEmail('${email.id}')" class="btn btn-sm btn-info">
                                 <i class="fas fa-redo"></i>
                             </button>
                         </td>
                     </tr>
                 `).join('');
 
-                document.getElementById('emailsModal').style.display = 'block';
+                const emailsModal = new bootstrap.Modal(document.getElementById('emailsModal'));
+                emailsModal.show();
             } catch (error) {
                 console.error('Error al cargar los correos:', error);
                 alert('Error al cargar los correos de la campaña');
             }
         }
 
-        function closeEmailsModal() {
-            document.getElementById('emailsModal').style.display = 'none';
-        }
+        // No es necesaria una función closeEmailsModal() si se usa data-bs-dismiss="modal"
 
         async function pauseCampaign(campaignId) {
             try {
@@ -167,7 +200,10 @@
                 const response = await fetch(`/api/emails/${emailId}/resend`, { method: 'POST' });
                 if (response.ok) {
                     alert('Correo reenviado exitosamente');
-                    viewCampaignEmails(currentCampaignId);
+                    // Recargar los correos de la campaña actual en el modal
+                    if (currentCampaignId) {
+                        viewCampaignEmails(currentCampaignId);
+                    }
                 } else {
                     alert('Error al reenviar el correo');
                 }

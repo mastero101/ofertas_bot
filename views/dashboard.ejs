@@ -6,6 +6,7 @@
     <title>Dashboard - Sistema de Ofertas</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="/css/dashboard.css" rel="stylesheet">
 </head>
 <body>
@@ -17,17 +18,17 @@
                     <ul class="nav flex-column">
                         <li class="nav-item">
                             <a class="nav-link active" href="/dashboard">
-                                Dashboard
+                                <i class="fas fa-chart-bar"></i> Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="/enviar">
-                                Enviar Ofertas
+                                <i class="fas fa-paper-plane"></i> Enviar Ofertas
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="/campaigns">
-                                Campañas
+                                <i class="fas fa-bullhorn"></i> Campañas
                             </a>
                         </li>
                     </ul>
@@ -202,8 +203,7 @@
                             <td>${email.subject}</td>
                             <td>${new Date(email.scheduledFor).toLocaleString()}</td>
                             <td>
-                                <button class="btn btn-sm btn-primary" onclick="editScheduledEmail('${email.id}')">Editar</button>
-                                <button class="btn btn-sm btn-danger" onclick="deleteScheduledEmail('${email.id}')">Eliminar</button>
+                                <button onclick="cancelScheduledEmail('${email.id}')" class="btn btn-sm btn-danger">Cancelar</button>
                             </td>
                         `;
                         tbody.appendChild(tr);
@@ -214,31 +214,29 @@
             }
         }
 
-        // Función para editar un correo programado
-        async function editScheduledEmail(emailId) {
-            // Implementar lógica de edición
-            console.log('Edit email:', emailId);
-        }
-
-        // Función para eliminar un correo programado
-        async function deleteScheduledEmail(emailId) {
-            if (confirm('¿Estás seguro de que deseas eliminar este correo programado?')) {
+        // Función para cancelar un correo programado
+        async function cancelScheduledEmail(emailId) {
+            if (confirm('¿Está seguro de que desea cancelar este correo programado?')) {
                 try {
                     const response = await fetch(`/api/statistics/scheduled/${emailId}`, {
                         method: 'DELETE'
                     });
                     const data = await response.json();
                     if (data.success) {
-                        loadScheduledEmails();
+                        alert('Correo cancelado exitosamente.');
+                        loadScheduledEmails(); // Recargar la tabla de correos programados
+                    } else {
+                        alert('Error al cancelar el correo: ' + (data.message || ''));
                     }
                 } catch (error) {
-                    console.error('Error deleting scheduled email:', error);
+                    console.error('Error cancelling scheduled email:', error);
+                    alert('Error al cancelar el correo.');
                 }
             }
         }
 
-        // Cargar datos al iniciar
-        document.addEventListener('DOMContentLoaded', () => {
+        // Cargar datos al cargar la página
+        window.addEventListener('load', () => {
             loadGeneralStats();
             loadDailyStats();
             loadScheduledEmails();

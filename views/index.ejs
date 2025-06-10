@@ -3,65 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Envío de Ofertas</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Update the modal HTML structure -->
-    <div id="previewModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="closePreview()">&times;</span>
-            <h2>Vista Previa del Correo</h2>
-            <iframe id="previewFrame" class="preview-frame"></iframe>
-        </div>
-    </div>
-    
-    <!-- Update the styles -->
+    <title>Enviar Correos - HAMSE</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/dashboard.css" rel="stylesheet">
     <style>
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.7);
-            z-index: 1000;
-        }
-    
-        .modal-content {
-            position: relative;
-            background-color: #fefefe;
-            margin: 5% auto;
-            padding: 20px;
-            width: 80%;
-            max-width: 800px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-    
-        .close-modal {
-            position: absolute;
-            right: 15px;
-            top: 10px;
-            font-size: 28px;
-            font-weight: bold;
-            color: #666;
-            cursor: pointer;
-            z-index: 1001;
-            padding: 5px 10px;
-        }
-    
-        .close-modal:hover {
-            color: #000;
-        }
-    
-        .preview-frame {
-            width: 100%;
-            height: 600px;
-            border: none;
-            margin-top: 10px;
-        }
-    
         .image-preview {
             display: none;
             margin: 10px 0;
@@ -74,224 +21,330 @@
         }
 
         .button-group {
-        display: flex;
-        gap: 15px;
-        align-items: center;
-        margin: 15px 0;
-    }
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin: 15px 0;
+        }
 
-    .upload-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 10px 20px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 500;
-        min-width: 200px;
-        background-color: #3498db;
-        color: white;
-        border: none;
-        text-decoration: none;
-        transition: background-color 0.3s ease;
-    }
+        .upload-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 200px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
 
-    .download-template-btn{
-        padding-bottom: 1%;
-        margin-bottom: 2.5%;
-    }
+        .download-template-btn{
+            padding-bottom: 1%;
+            margin-bottom: 2.5%;
+        }
 
-    .preview-btn {
-        padding-bottom: 0.5%;
-    }
+        .preview-btn {
+            padding-bottom: 0.5%;
+        }
 
-    .upload-btn:hover, .download-template-btn:hover .preview-btn:hover{
-        background-color: #0af751;
-    }
+        .upload-btn:hover, .download-template-btn:hover .preview-btn:hover{
+            background-color: #0af751;
+        }
 
-    .file-upload {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
+        .file-upload {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
 
-    .file-upload input[type="file"] {
-        padding: 8px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        background: #f9f9f9;
-    }
+        .file-upload input[type="file"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+
+        /* Success checkmark styles */
+        .success-checkmark {
+            width: 80px;
+            height: 115px;
+            margin: 0 auto;
+        }
+        .success-checkmark .check-icon {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            border-radius: 50%;
+            box-sizing: content-box;
+            border: 4px solid #4CAF50;
+        }
+        .success-checkmark .check-icon::before, .success-checkmark .check-icon::after {
+            content: '';
+            border-radius: 50%;
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: #fff;
+            transform: scale(0);
+            animation: fill .5s ease-in-out .3s forwards;
+        }
+        .success-checkmark .check-icon::after {
+            left: 30px;
+            top: 20px;
+            animation-delay: .7s;
+        }
+        .success-checkmark .check-icon .icon-line {
+            height: 5px;
+            background-color: #4CAF50;
+            display: block;
+            border-radius: 2px;
+            position: absolute;
+            z-index: 10;
+        }
+        .success-checkmark .check-icon .icon-line.line-tip {
+            top: 46px;
+            left: 14px;
+            width: 25px;
+            transform: rotate(45deg);
+            animation: animateTip .5s ease-in-out forwards .6s;
+        }
+        .success-checkmark .check-icon .icon-line.line-long {
+            top: 38px;
+            right: 10px;
+            width: 47px;
+            transform: rotate(-45deg);
+            animation: animateLong .5s ease-in-out forwards .6s;
+        }
+
+        @keyframes fill {
+            100% { transform: scale(1); }
+        }
+        @keyframes animateTip {
+            0% { width: 0; left: 1px; top: 19px; }
+            50% { width: 0; left: 1px; top: 19px; }
+            100% { width: 25px; left: 14px; top: 46px; }
+        }
+        @keyframes animateLong {
+            0% { width: 0; right: 46px; top: 54px; }
+            50% { width: 0; right: 46px; top: 54px; }
+            100% { width: 47px; right: 10px; top: 38px; }
+        }
     </style>
-    
-    <!-- Update the JavaScript -->
-    <script>
-        function closePreview() {
-            document.getElementById('previewModal').style.display = 'none';
-        }
-    
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('previewModal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        }
-    </script>
 </head>
 <body>
-    <div class="container">
-        <header class="dashboard-header">
-            <h1><i class="fas fa-paper-plane"></i> Enviar Correos</h1>
-            <nav class="dashboard-nav">
-                <a href="/dashboard" class="nav-link"><i class="fas fa-chart-bar"></i> Dashboard</a>
-                <a href="/enviar" class="nav-link active"><i class="fas fa-paper-plane"></i> Enviar Correos</a>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/dashboard">
+                                <i class="fas fa-chart-bar"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/enviar">
+                                <i class="fas fa-paper-plane"></i> Enviar Ofertas
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/campaigns">
+                                <i class="fas fa-bullhorn"></i> Campañas
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </nav>
-        </header>
-        
-        <div class="upload-section">
-            <h2><i class="fas fa-file-excel"></i> Envío Masivo</h2>
-            <div class="excel-content-form">
-                <form id="massEmailForm">
-                    <div>
-                        <label for="subject">Asunto:</label>
-                        <input type="text" name="subject" required>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2"><i class="fas fa-paper-plane"></i> Enviar Correos</h1>
+                </div>
+
+                <!-- Envío Masivo Section -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h2 class="h5 card-title"><i class="fas fa-file-excel"></i> Envío Masivo</h2>
                     </div>
-                    <div>
-                        <label for="offerTitle">Título de la Oferta:</label>
-                        <input type="text" name="offerTitle" required>
+                    <div class="card-body">
+                        <form id="massEmailForm">
+                            <div class="mb-3">
+                                <label for="subject" class="form-label">Asunto:</label>
+                                <input type="text" class="form-control" name="subject" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="offerTitle" class="form-label">Título de la Oferta:</label>
+                                <input type="text" class="form-control" name="offerTitle" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="offerDescription" class="form-label">Descripción de la Oferta:</label>
+                                <textarea class="form-control" name="offerDescription" required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="offerPrice" class="form-label">Precio de la Oferta:</label>
+                                <input type="number" class="form-control" name="offerPrice" step="0.01">
+                            </div>
+                            <div class="mb-3">
+                                <label for="productImageMassive" class="form-label"><i class="fas fa-image"></i> Imagen del Producto:</label>
+                                <input type="file" class="form-control" name="productImage" id="productImageMassive" accept="image/*">
+                                <div id="imagePreviewMassive" class="image-preview mt-2"></div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="offerLinkMassive" class="form-label">Enlace de la Oferta:</label>
+                                <input type="url" class="form-control" name="offerLink" id="offerLinkMassive">
+                            </div>
+                            <div class="mb-3">
+                                <label for="excelFile" class="form-label"><i class="fas fa-file-excel"></i> Archivo Excel:</label>
+                                <input type="file" class="form-control" name="excelFile" id="excelFile" accept=".xlsx, .xls" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="campaignIdMassive" class="form-label">ID de Campaña:</label>
+                                <input type="text" class="form-control" name="campaignId" id="campaignIdMassive" placeholder="Ej: BlackFriday_2023" readonly>
+                            </div>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Cargar Archivo</button>
+                            <a href="/download-template" class="btn btn-secondary mt-2"><i class="fas fa-download"></i> Descargar Plantilla</a>
+                        </form>
                     </div>
-                    <div>
-                        <label for="offerDescription">Descripción de la Oferta:</label>
-                        <textarea name="offerDescription" required></textarea>
+                </div>
+
+                <!-- Entrada Manual Section -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h2 class="h5 card-title"><i class="fas fa-edit"></i> Entrada Manual</h2>
                     </div>
-                    <div>
-                        <label for="offerPrice">Precio de la Oferta:</label>
-                        <input type="number" name="offerPrice" step="0.01">
+                    <div class="card-body">
+                        <form action="/send-emails" method="post" id="emailForm" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="email" class="form-label"><i class="fas fa-envelope"></i> Correo del Destinatario:</label>
+                                <input type="email" class="form-control" name="email" required placeholder="ejemplo@correo.com">
+                            </div>
+                            <div class="mb-3">
+                                <label for="customerName" class="form-label">Nombre del Cliente:</label>
+                                <input type="text" class="form-control" name="customerName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="subjectManual" class="form-label">Asunto:</label>
+                                <input type="text" class="form-control" name="subject" id="subjectManual" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="offerTitleManual" class="form-label">Título de la Oferta:</label>
+                                <input type="text" class="form-control" name="offerTitle" id="offerTitleManual" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="offerDescriptionManual" class="form-label">Descripción de la Oferta:</label>
+                                <textarea class="form-control" name="offerDescription" id="offerDescriptionManual" required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="offerPriceManual" class="form-label">Precio de la Oferta:</label>
+                                <input type="number" class="form-control" name="offerPrice" id="offerPriceManual" step="0.01">
+                            </div>
+                            <div class="mb-3">
+                                <label for="productImageManual" class="form-label"><i class="fas fa-image"></i> Imagen del Producto:</label>
+                                <input type="file" class="form-control" name="productImage" id="productImageManual" accept="image/*">
+                                <div id="imagePreviewManual" class="image-preview mt-2"></div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="offerLinkManual" class="form-label">Enlace de la Oferta:</label>
+                                <input type="url" class="form-control" name="offerLink" id="offerLinkManual">
+                            </div>
+                            <div class="mb-3">
+                                <label for="campaignIdManual" class="form-label"><i class="fas fa-tags"></i> ID de Campaña:</label>
+                                <input type="text" class="form-control" name="campaignId" id="campaignIdManual" placeholder="Ej: LanzamientoProducto_Q1" readonly>
+                            </div>
+                            <div class="d-flex justify-content-start">
+                                <button type="button" onclick="previewEmail()" class="btn btn-secondary me-2">
+                                    <i class="fas fa-eye"></i> Vista Previa
+                                </button>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-paper-plane"></i> Enviar
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    <div>
-                        <label for="campaignId">ID de Campaña:</label>
-                        <input type="text" name="campaignId" placeholder="Ej: BlackFriday_2023" readonly>
+                </div>
+
+                <!-- Queue Section -->
+                <div class="card mb-4 queue-section" style="display: none;">
+                    <div class="card-header">
+                        <h2 class="h5 card-title"><i class="fas fa-list"></i> Cola de Correos</h2>
                     </div>
-                    <div>
-                        <label for="productImage"><i class="fas fa-image"></i> Imagen del Producto:</label>
-                        <input type="file" name="productImage" accept="image/*">
-                        <div id="massImagePreview" class="image-preview"></div>
-                    </div>
-                    <div>
-                        <label for="offerLink">Enlace de la Oferta:</label>
-                        <input type="url" name="offerLink">
-                    </div>
-                </form>
-            </div>
-            
-            <div class="excel-actions">
-                <div class="button-group">
-                    <form action="/upload" method="post" enctype="multipart/form-data" id="excelUploadForm">
-                        <div class="file-upload">
-                            <input type="file" name="excelFile" accept=".xlsx,.xls" id="excelFile">
-                            <button type="submit" class="upload-btn">
-                                <i class="fas fa-upload"></i> Cargar Lista de Correos
+                    <div class="card-body">
+                        <div class="queue-list list-group mb-3"></div>
+                        <div class="d-flex justify-content-start">
+                            <button onclick="sendQueue()" class="btn btn-primary me-2">
+                                <i class="fas fa-paper-plane"></i> Enviar Todos
                             </button>
-                            <button type="button" onclick="previewMassEmail()" class="preview-btn">
-                                <i class="fas fa-eye"></i> Vista Previa
+                            <button onclick="clearQueue()" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Limpiar Lista
                             </button>
                         </div>
-                    </form>
-                    <a href="/download-template" class="download-template-btn">
-                        <i class="fas fa-download"></i> Descargar Plantilla de Correos
-                    </a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div id="uploadSuccessModal" class="modal fade" tabindex="-1" aria-labelledby="uploadSuccessModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="uploadSuccessModalLabel">¡Archivo Cargado!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="success-checkmark">
+                        <div class="check-icon">
+                            <span class="icon-line line-tip"></span>
+                            <span class="icon-line line-long"></span>
+                        </div>
+                    </div>
+                    <p>Se han cargado los correos exitosamente</p>
+                    <p class="email-count"></p>
                 </div>
             </div>
         </div>
-
-        <div class="manual-entry">
-            <h2><i class="fas fa-edit"></i> Entrada Manual</h2>
-            <form action="/send-emails" method="post" id="emailForm" enctype="multipart/form-data">
-                <div>
-                    <label for="email"><i class="fas fa-envelope"></i> Correo del Destinatario:</label>
-                    <input type="email" name="email" required placeholder="ejemplo@correo.com">
-                </div>
-                <div>
-                    <label for="customerName">Nombre del Cliente:</label>
-                    <input type="text" name="customerName" required>
-                </div>
-                <div>
-                    <label for="subject">Asunto:</label>
-                    <input type="text" name="subject" required>
-                </div>
-                <div>
-                    <label for="offerTitle">Título de la Oferta:</label>
-                    <input type="text" name="offerTitle" required>
-                </div>
-                <div>
-                    <label for="offerDescription">Descripción de la Oferta:</label>
-                    <textarea name="offerDescription" required></textarea>
-                </div>
-                <div>
-                    <label for="offerPrice">Precio de la Oferta:</label>
-                    <input type="number" name="offerPrice" step="0.01">
-                </div>
-                <div>
-                    <label for="productImage"><i class="fas fa-image"></i> Imagen del Producto:</label>
-                    <input type="file" name="productImage" id="productImage" accept="image/*">
-                    <div id="imagePreview" class="image-preview"></div>
-                </div>
-                <div>
-                    <label for="offerLink">Enlace de la Oferta:</label>
-                    <input type="url" name="offerLink">
-                </div>
-                <div>
-                    <label for="campaignId"><i class="fas fa-tags"></i> ID de Campaña:</label>
-                    <input type="text" name="campaignId" placeholder="Ej: LanzamientoProducto_Q1" readonly>
-                </div>
-                <div class="button-group">
-                    <button type="button" onclick="previewEmail()" class="preview-btn">
-                        <i class="fas fa-eye"></i> Vista Previa
-                    </button>
-                    <button type="submit" class="send-btn">
-                        <i class="fas fa-paper-plane"></i> Enviar
-                    </button>
-                </div>
-            </form>
-        </div>
     </div>
 
-    <!-- Modal para Vista Previa -->
-    <div id="previewModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="closePreview()">&times;</span>
-            <h2>Vista Previa del Correo</h2>
-            <iframe id="previewFrame" class="preview-frame"></iframe>
-        </div>
-    </div>
-
-    <div id="uploadSuccessModal" class="modal success-modal">
-        <div class="modal-content success-content">
-            <div class="success-checkmark">
-                <div class="check-icon">
-                    <span class="icon-line line-tip"></span>
-                    <span class="icon-line line-long"></span>
+    <div id="successModal" class="modal fade" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="successModalLabel">¡Éxito!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="success-checkmark">
+                        <div class="check-icon">
+                            <span class="icon-line line-tip"></span>
+                            <span class="icon-line line-long"></span>
+                        </div>
+                    </div>
+                    <p id="successMessage">Email enviado satisfactoriamente</p>
                 </div>
             </div>
-            <h2>¡Archivo Cargado!</h2>
-            <p>Se han cargado los correos exitosamente</p>
-            <p class="email-count"></p>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.24.0/axios.min.js"></script>
     <script>
-    
-        // Image preview functionality
-        document.getElementById('productImage').addEventListener('change', function(e) {
+        // Image preview functionality for Mass Email Form
+        document.getElementById('productImageMassive').addEventListener('change', function(e) {
             const file = e.target.files[0];
-            const preview = document.getElementById('imagePreview');
-            
+            const preview = document.getElementById('imagePreviewMassive');
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview" class="img-fluid rounded">`;
                     preview.style.display = 'block';
                 }
                 reader.readAsDataURL(file);
@@ -300,215 +353,158 @@
                 preview.innerHTML = '';
             }
         });
-    
-        // Generar y mostrar ID de campaña al cargar la página
-        function generateCampaignId() {
-            const timestamp = Date.now();
-            // Usamos un prefijo diferente para diferenciar envíos masivos de manuales si es necesario
-            // O simplemente un prefijo general 'campana_' si preferimos.
-            // Por ahora, mantengamos un prefijo simple.
-            return `campana_${timestamp}`;
-        }
 
-        // Establecer el ID de campaña generado al cargar la página
-        window.addEventListener('load', () => {
-            const campaignIdInputMass = document.querySelector('#massEmailForm input[name="campaignId"]');
-            const campaignIdInputManual = document.querySelector('#emailForm input[name="campaignId"]');
-
-            const generatedId = generateCampaignId();
-
-            if (campaignIdInputMass) {
-                campaignIdInputMass.value = generatedId;
-            }
-
-            if (campaignIdInputManual) {
-                 // Podrías generar un ID diferente para el manual si quieres
-                 // For now, let's use the same generatedId for consistency
-                campaignIdInputManual.value = generatedId;
+        // Image preview functionality for Manual Entry Form
+        document.getElementById('productImageManual').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('imagePreviewManual');
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview" class="img-fluid rounded">`;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+                preview.innerHTML = '';
             }
         });
-    
-        // Modified preview email function
-        function previewEmail() {
+        
+        // Generate and display Campaign ID on page load
+        function generateCampaignId() {
+            // Generate a UUID v4
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // Set generated Campaign ID on page load
+        window.addEventListener('load', () => {
+            const campaignIdInputMassive = document.getElementById('campaignIdMassive');
+            const campaignIdInputManual = document.getElementById('campaignIdManual');
+            const generatedId = generateCampaignId();
+            if (campaignIdInputMassive) {
+                campaignIdInputMassive.value = generatedId;
+            }
+            if (campaignIdInputManual) {
+                campaignIdInputManual.value = generatedId;
+            }
+            loadQueueDisplay(); // Load queue when page loads
+        });
+
+        // Handle mass email form submission
+        document.getElementById('massEmailForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            try {
+                const response = await axios.post('/upload', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                if (response.data.success) {
+                    document.querySelector('#uploadSuccessModal .email-count').textContent = `Total de correos: ${response.data.totalEmails}`;
+                    const uploadSuccessModal = new bootstrap.Modal(document.getElementById('uploadSuccessModal'));
+                    uploadSuccessModal.show();
+                    // Limpiar el formulario después del éxito
+                    this.reset();
+                    document.getElementById('imagePreviewMassive').innerHTML = '';
+                    document.getElementById('imagePreviewMassive').style.display = 'none';
+                    // Regenerar el ID de campaña
+                    document.getElementById('campaignIdMassive').value = generateCampaignId();
+                    await loadQueueDisplay();
+                } else {
+                    alert('Error al cargar el archivo: ' + response.data.message);
+                }
+            } catch (error) {
+                console.error('Error al procesar el archivo Excel:', error);
+                alert('Error al procesar el archivo Excel: ' + (error.response?.data?.message || error.message));
+            }
+        });
+
+        // Handle manual email form submission
+        document.getElementById('emailForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+        
+            try {
+                const response = await axios.post('/send-emails', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                const data = response.data;
+        
+                if (data.success) {
+                    document.getElementById('successMessage').textContent = 'Email enviado satisfactoriamente';
+                    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                    successModal.show();
+                    this.reset();
+                    document.getElementById('imagePreviewManual').innerHTML = '';
+                    document.getElementById('imagePreviewManual').style.display = 'none';
+                    // Regenerar el ID de campaña
+                    document.getElementById('campaignIdManual').value = generateCampaignId();
+                } else {
+                    alert(data.message || 'Error al enviar el correo');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al enviar el correo: ' + (error.response?.data?.message || error.message));
+            }
+        });
+
+        // Preview email function
+        async function previewEmail() {
             const form = document.getElementById('emailForm');
             const formData = new FormData(form);
 
-            fetch('/preview-email', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.text())
-            .then(html => {
-                const frame = document.getElementById('previewFrame');
-                frame.srcdoc = html;
-                document.getElementById('previewModal').style.display = 'block';
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al generar la vista previa');
-            });
-        }
-    
-    // Add this function after your existing JavaScript
-    function showSuccessModal() {
-        document.getElementById('successModal').style.display = 'block';
-        setTimeout(() => {
-            document.getElementById('successModal').style.display = 'none';
-        }, 3000); // Hide after 3 seconds
-    }
-    
-    // Update the form submission handler
-    document.getElementById('emailForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-    
-        fetch('/send-emails', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showSuccessModal();
-                this.reset();
-                document.getElementById('imagePreview').style.display = 'none';
-            } else {
-                alert(data.message || 'Error al enviar el correo');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error al enviar el correo');
-        });
-    });
-
-    document.getElementById('excelUploadForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        
-        // Add mass email content to formData
-        const massEmailForm = document.getElementById('massEmailForm');
-        const massEmailData = new FormData(massEmailForm);
-        for(let [key, value] of massEmailData.entries()) {
-            formData.append(key, value);
-        }
-    
-        try {
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-    
-            if (data.success) {
-                const modal = document.getElementById('uploadSuccessModal');
-                modal.querySelector('.email-count').textContent = 
-                    `Total de destinatarios: ${data.totalEmails}`;
-                modal.style.display = 'block';
-                
-                await loadQueueDisplay();
-                const queueSection = document.querySelector('.queue-section');
-                queueSection.scrollIntoView({ behavior: 'smooth' });
-                
-                setTimeout(() => {
-                    modal.style.display = 'none';
-                }, 1500);
-            } else {
-                alert(data.message || 'Error al cargar el archivo');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error al procesar el archivo');
-        }
-    });
-    </script>
-    <!-- Add this after the preview modal -->
-    <div id="successModal" class="modal success-modal">
-        <div class="modal-content success-content">
-            <div class="success-checkmark">
-                <div class="check-icon">
-                    <span class="icon-line line-tip"></span>
-                    <span class="icon-line line-long"></span>
-                </div>
-            </div>
-            <h2>¡Éxito!</h2>
-            <p>Email enviado satisfactoriamente</p>
-        </div>
-    </div>
-
-    <!-- Add this after your upload section -->
-    <div class="queue-section" style="display: none;">
-        <h2><i class="fas fa-list"></i> Cola de Correos</h2>
-        <div class="queue-list"></div>
-        <!-- Add this in the queue-actions div -->
-        <div class="queue-actions">
-            <div class="queue-buttons">
-                <button onclick="sendQueue()" class="send-queue-btn">
-                    <i class="fas fa-paper-plane"></i> Enviar Todos
-                </button>
-                <button onclick="clearQueue()" class="clear-queue-btn">
-                    <i class="fas fa-trash"></i> Limpiar Lista
-                </button>
-            </div>
-        </div>
-        
-        <!-- Add these styles -->
-        <style>
-            .queue-buttons {
-                display: flex;
-                gap: 15px;
-                justify-content: flex-start;
-            }
-        
-            .clear-queue-btn {
-                background-color: #e74c3c;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: var(--border-radius);
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                transition: background-color 0.3s;
-            }
-        
-            .clear-queue-btn:hover {
-                background-color: #c0392b;
-            }
-        </style>
-        
-        <!-- Add this JavaScript function -->
-        <script>
-            async function clearQueue() {
-                if (confirm('¿Está seguro que desea eliminar todos los correos de la lista?')) {
-                    try {
-                        const response = await fetch('/queue', { 
-                            method: 'DELETE',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        });
-                        const data = await response.json();
-            
-                        if (data.success) {
-                            const queueSection = document.querySelector('.queue-section');
-                            queueSection.style.display = 'none';
-                            document.querySelector('.queue-list').innerHTML = '';
-                        } else {
-                            alert('Error al limpiar la lista: ' + data.message);
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('Error al limpiar la lista');
+            try {
+                const response = await axios.post('/preview-email', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
                     }
-                }
+                });
+                
+                const previewFrame = document.getElementById('previewFrame');
+                previewFrame.srcdoc = response.data; // Set the HTML content directly
+                const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+                previewModal.show();
+            } catch (error) {
+                console.error('Error al generar la vista previa:', error);
+                alert('Error al generar la vista previa: ' + (error.response?.data?.message || error.message));
             }
-        </script>
-    </div>
+        }
 
-    <script>
-        // Update the loadQueueDisplay function to include delete buttons
+        // Preview mass email function
+        async function previewMassEmail() {
+            const massEmailForm = document.getElementById('massEmailForm');
+            const formData = new FormData(massEmailForm);
+            
+            // Add example recipient data for preview since mass email doesn't have a single recipient
+            formData.append('email', 'ejemplo@correo.com');
+            formData.append('customerName', 'Cliente de Ejemplo');
+
+            try {
+                const response = await axios.post('/preview-email', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                const previewFrame = document.getElementById('previewFrame');
+                previewFrame.srcdoc = response.data;
+                const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+                previewModal.show();
+            } catch (error) {
+                console.error('Error al generar la vista previa masiva:', error);
+                alert('Error al generar la vista previa masiva: ' + (error.response?.data?.message || error.message));
+            }
+        }
+        
+        // Load queue display
         async function loadQueueDisplay() {
             try {
                 const response = await fetch('/queue');
@@ -520,25 +516,27 @@
                 if (emails.length > 0) {
                     queueSection.style.display = 'block';
                     queueList.innerHTML = emails.map((email, index) => `
-                        <div class="queue-item">
-                            <i class="fas fa-envelope"></i>
-                            <span>${email.to}</span>
-                            <span class="customer-name">${email.customerName}</span>
-                            <span class="queue-subject">${email.subject}</span>
-                            <button onclick="deleteQueueItem(${index})" class="delete-item-btn">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-envelope me-2"></i>
+                                <span>${email.to}</span>
+                                <span class="text-muted ms-3">${email.subject}</span>
+                            </div>
+                            <button onclick="deleteQueueItem(${index})" class="btn btn-sm btn-outline-danger">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
                     `).join('');
                 } else {
                     queueSection.style.display = 'none';
+                    queueList.innerHTML = '';
                 }
             } catch (error) {
                 console.error('Error loading queue:', error);
             }
         }
         
-        // Add the deleteQueueItem function
+        // Delete item from queue
         async function deleteQueueItem(index) {
             try {
                 const response = await fetch(`/queue/${index}`, { method: 'DELETE' });
@@ -547,7 +545,7 @@
                 if (data.success) {
                     await loadQueueDisplay();
                 } else {
-                    alert('Error al eliminar el correo');
+                    alert('Error al eliminar el correo: ' + (data.message || ''));
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -555,149 +553,54 @@
             }
         }
         
+        // Send all emails in queue
         async function sendQueue() {
-            try {
-                const response = await fetch('/send-queue', { method: 'POST' });
-                const data = await response.json();
-    
-                if (data.success) {
-                    showSuccessModal(`Correos enviados: ${data.results.length}`);
-                    document.querySelector('.queue-section').style.display = 'none';
-                } else {
-                    alert(data.message || 'Error al enviar los correos');
+            if (confirm('¿Está seguro que desea enviar todos los correos de la lista?')) {
+                try {
+                    const response = await fetch('/send-queue', { method: 'POST' });
+                    const data = await response.json();
+        
+                    if (data.success) {
+                        document.getElementById('successMessage').textContent = `Enviados: ${data.results.length}, Fallidos: ${data.errors.length}`;
+                        const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                        successModal.show();
+                        document.querySelector('.queue-section').style.display = 'none';
+                        document.querySelector('.queue-list').innerHTML = '';
+                    } else {
+                        alert(data.message || 'Error al enviar los correos');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al procesar la cola de correos');
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al procesar la cola de correos');
             }
         }
 
-        function previewMassEmail() {
-            const form = document.getElementById('massEmailForm');
-            const formData = new FormData(form);
-            
-            // Add example recipient data for preview
-            formData.append('email', 'ejemplo@correo.com');
-            formData.append('customerName', 'Cliente de Ejemplo');
-
-            fetch('/preview-email', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.text())
-            .then(html => {
-                const frame = document.getElementById('previewFrame');
-                frame.srcdoc = html;
-                document.getElementById('previewModal').style.display = 'block';
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al generar la vista previa');
-            });
-        }
-
-        document.querySelector('#massEmailForm input[name="productImage"]').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            const preview = document.getElementById('massImagePreview');
-            
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-                    preview.style.display = 'block';
+        // Clear all emails in queue
+        async function clearQueue() {
+            if (confirm('¿Está seguro que desea eliminar todos los correos de la lista?')) {
+                try {
+                    const response = await fetch('/queue', { 
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const data = await response.json();
+        
+                    if (data.success) {
+                        document.querySelector('.queue-section').style.display = 'none';
+                        document.querySelector('.queue-list').innerHTML = '';
+                        alert('Lista de correos limpiada exitosamente.');
+                    } else {
+                        alert('Error al limpiar la lista: ' + (data.message || ''));
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al limpiar la lista');
                 }
-                reader.readAsDataURL(file);
-            } else {
-                preview.style.display = 'none';
-                preview.innerHTML = '';
             }
-        });
+        }
     </script>
-
-    <style>
-        .queue-section {
-            margin-top: 30px;
-            padding: 20px;
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-    
-        .queue-list {
-            margin: 20px 0;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-    
-        .customer-name {
-            color: #2980b9;
-            font-weight: 500;
-            margin-left: 10px;
-        }
-    
-        .queue-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            position: relative;
-        }
-    
-        .queue-subject {
-            color: #666;
-            margin-left: auto;
-        }
-    
-        .send-queue-btn {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-    
-        .send-queue-btn:hover {
-            background-color: #34495e;
-        }
-
-        #uploadSuccessModal .email-count {
-        margin-top: 10px;
-        color: #666;
-        font-size: 0.9em;
-    }
-
-    .success-modal .modal-content {
-        text-align: center;
-        padding: 40px;
-        max-width: 400px;
-        border-radius: var(--border-radius);
-    }
-
-    .delete-item-btn {
-        background-color: transparent;
-        color: #e74c3c;
-        border: none;
-        cursor: pointer;
-        padding: 5px;
-        margin-left: auto;
-        border-radius: 50%;
-        width: 30px;
-        height: 30px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s;
-    }
-
-    .delete-item-btn:hover {
-        background-color: #e74c3c;
-        color: white;
-    }
-    </style>
 </body>
 </html>

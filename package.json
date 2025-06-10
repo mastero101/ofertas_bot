@@ -5,7 +5,8 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "init-db": "node src/config/initDb.js"
   },
   "keywords": [],
   "author": "",
@@ -20,7 +21,7 @@
     "node-fetch": "^3.3.2",
     "pg": "^8.16.0",
     "sequelize": "^6.37.7",
-    "uuid": "^11.1.0",
+    "uuid": "^9.0.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
