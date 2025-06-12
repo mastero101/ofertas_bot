@@ -39,38 +39,48 @@ async function sendHTMLEmail(emailData) {
             return { message: 'Email scheduled successfully', emailId: emailData.id, status: 'scheduled' };
         }
 
+        // Preparar el HTML del correo
+        const htmlContent = await generateEmailHTML({
+            ...emailData,
+            baseUrl: process.env.BASE_URL
+        });
+
         // Configuración para ZeptoMail
+        const emailPayload = {
+            bounce_address: process.env.BOUNCE_EMAIL,
+            from: {
+                address: process.env.FROM_EMAIL,
+                name: emailData.companyName || 'HAMSE'
+            },
+            to: [{
+                email_address: {
+                    address: emailData.to,
+                    name: emailData.customerName || 'Cliente'
+                }
+            }],
+            subject: emailData.subject,
+            textbody: emailData.offerDescription || '',
+            htmlbody: htmlContent
+        };
+
+        console.log('Payload del correo:', JSON.stringify(emailPayload, null, 2));
+
         const config = {
             method: 'post',
             url: 'https://api.zeptomail.com/v1.1/email',
             headers: {
-                'Authorization': `Zoho-enczapikey ${process.env.ZEPTO_API_KEY}`,
-                'Content-Type': 'application/json'
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Zoho-enczapikey ${process.env.ZEPTO_API_KEY}`
             },
-            data: {
-                bounce_address: process.env.BOUNCE_EMAIL,
-                from: {
-                    address: process.env.FROM_EMAIL,
-                    name: emailData.companyName || 'HAMSE'
-                },
-                to: [{
-                    email_address: {
-                        address: emailData.to,
-                        name: emailData.customerName
-                    }
-                }],
-                subject: emailData.subject,
-                textbody: emailData.offerDescription,
-                htmlbody: await generateEmailHTML({
-                    ...emailData,
-                    baseUrl: process.env.BASE_URL // Pasar la URL base a la plantilla
-                })
-            }
+            data: emailPayload
         };
 
         console.log('Enviando solicitud a ZeptoMail...');
         const response = await axios(config);
         const responseData = response.data;
+
+        console.log('Respuesta de ZeptoMail:', responseData);
 
         if (responseData.request_id) {
             await Email.update(
@@ -90,7 +100,16 @@ async function sendHTMLEmail(emailData) {
             message: error.message,
             status: error.response?.status,
             statusText: error.response?.statusText,
-            data: error.response?.data
+            data: error.response?.data,
+            config: {
+                url: error.config?.url,
+                method: error.config?.method,
+                headers: {
+                    ...error.config?.headers,
+                    'Authorization': 'Zoho-enczapikey [OCULTO]'
+                },
+                data: error.config?.data
+            }
         });
 
         if (emailData.id) {
