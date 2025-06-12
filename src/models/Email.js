@@ -81,6 +81,11 @@ const Email = sequelize.define('Email', {
         type: DataTypes.STRING,
         allowNull: true,
         comment: 'ID de solicitud de ZeptoMail para seguimiento'
+    },
+    errorDetails: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Detalles del error si el envío falla'
     }
 }, {
     timestamps: true,

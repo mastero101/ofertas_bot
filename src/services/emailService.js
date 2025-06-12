@@ -82,10 +82,19 @@ async function sendHTMLEmail(emailData) {
                 'User-Agent': 'Node.js/1.0'
             },
             data: emailPayload,
-            timeout: 10000, // 10 segundos de timeout
+            timeout: 30000, // Aumentado a 30 segundos
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
             validateStatus: function (status) {
-                return status >= 200 && status < 500; // Aceptar cualquier status que no sea 500
-            }
+                return status >= 200 && status < 500;
+            },
+            transformResponse: [(data) => {
+                try {
+                    return JSON.parse(data);
+                } catch (e) {
+                    return data;
+                }
+            }]
         };
 
         console.log('Enviando solicitud a ZeptoMail...');
@@ -95,23 +104,42 @@ async function sendHTMLEmail(emailData) {
         });
 
         try {
+            // Validar el payload antes de enviar
+            if (!emailPayload.to || !emailPayload.to.length) {
+                throw new Error('No se especificaron destinatarios');
+            }
+
+            if (!emailPayload.from || !emailPayload.from.address) {
+                throw new Error('No se especificó el remitente');
+            }
+
+            if (!emailPayload.subject) {
+                throw new Error('No se especificó el asunto');
+            }
+
             const response = await axios(config);
-            const responseData = response.data;
+            
+            // Verificar si la respuesta es válida
+            if (!response.data) {
+                throw new Error('Respuesta vacía de ZeptoMail');
+            }
 
-            console.log('Respuesta de ZeptoMail:', responseData);
+            console.log('Respuesta de ZeptoMail:', response.data);
 
-            if (responseData.request_id) {
+            if (response.data.request_id) {
                 await Email.update(
                     {
-                        zeptoRequestId: responseData.request_id,
+                        zeptoRequestId: response.data.request_id,
                         status: 'sent',
                         sentAt: new Date()
                     },
                     { where: { id: emailData.id } }
                 );
+            } else {
+                console.warn('ZeptoMail no devolvió un request_id en la respuesta:', response.data);
             }
 
-            return responseData;
+            return response.data;
         } catch (error) {
             console.error('=== ERROR EN sendHTMLEmail ===');
             console.error('Detalles del error:', {
@@ -134,9 +162,24 @@ async function sendHTMLEmail(emailData) {
                 console.error('Payload que causó el error:', JSON.stringify(error.config.data, null, 2));
             }
 
+            // Intentar obtener más detalles del error
+            if (error.response?.data) {
+                try {
+                    const errorData = typeof error.response.data === 'string' 
+                        ? JSON.parse(error.response.data) 
+                        : error.response.data;
+                    console.error('Detalles adicionales del error:', errorData);
+                } catch (e) {
+                    console.error('Error al parsear detalles adicionales:', e);
+                }
+            }
+
             if (emailData.id) {
                 await Email.update(
-                    { status: 'failed' },
+                    { 
+                        status: 'failed',
+                        errorDetails: error.message
+                    },
                     { where: { id: emailData.id } }
                 );
             }
