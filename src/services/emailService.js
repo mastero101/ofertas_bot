@@ -48,21 +48,21 @@ async function sendHTMLEmail(emailData) {
         console.log('sendHTMLEmail: HTML Content recibido de generateEmailHTML (primeros 500 caracteres):', htmlContent ? htmlContent.substring(0, 500) : 'HTML vacio');
         console.log('sendHTMLEmail: Longitud total del HTML Content:', htmlContent ? htmlContent.length : 0);
 
-        // Configuración para ZeptoMail
+        // Preparar el payload del correo
         const emailPayload = {
-            bounce_address: process.env.BOUNCE_EMAIL,
+            bounce_address: "noreply@ferche.app",
             from: {
-                address: process.env.FROM_EMAIL,
-                name: emailData.companyName || 'HAMSE'
+                address: "noreply@ferche.app",
+                name: emailData.customerName || "HAMSE"
             },
             to: [{
                 email_address: {
                     address: emailData.to,
-                    name: emailData.customerName || 'Cliente'
+                    name: emailData.customerName
                 }
             }],
             subject: emailData.subject,
-            textbody: emailData.offerDescription || '',
+            textbody: emailData.offerDescription,
             htmlbody: htmlContent,
             track_clicks: true,
             track_opens: true
