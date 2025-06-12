@@ -50,7 +50,7 @@ async function sendHTMLEmail(emailData) {
 
         // Preparar el payload del correo
         const emailPayload = {
-            bounce_address: "noreply@ferche.app",
+            bounce_address: "bounce@ferche.app",
             from: {
                 address: "noreply@ferche.app",
                 name: emailData.customerName || "HAMSE"
@@ -68,9 +68,11 @@ async function sendHTMLEmail(emailData) {
             track_opens: true
         };
 
-        console.log('Payload del correo (htmlbody primeros 500 caracteres):', emailPayload.htmlbody ? emailPayload.htmlbody.substring(0, 500) : 'HTML vacio en payload');
-        console.log('Payload del correo (longitud total htmlbody):', emailPayload.htmlbody ? emailPayload.htmlbody.length : 0);
-        console.log('Payload completo (sin htmlbody, por brevedad):', JSON.stringify({ ...emailPayload, htmlbody: '[OMITIDO POR LONGITUD]' }, null, 2));
+        // Log del payload (sin el HTML por brevedad)
+        console.log('Payload del correo:', {
+            ...emailPayload,
+            htmlbody: '[OMITIDO POR LONGITUD]'
+        });
 
         // Validar el payload antes de enviar
         if (!emailPayload.to || !emailPayload.to.length) {
