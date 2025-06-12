@@ -101,30 +101,41 @@ async function sendHTMLEmail(emailData) {
                 return status >= 200 && status < 300;
             },
             transformResponse: [(data) => {
+                if (!data) return null;
                 try {
                     return JSON.parse(data);
                 } catch (e) {
+                    console.warn('Error al parsear respuesta:', e);
                     return data;
                 }
             }]
         });
 
         // Validar la respuesta
-        if (!response.data || !response.data.request_id) {
-            console.warn('ZeptoMail no devolvió un request_id en la respuesta');
+        if (!response.data) {
+            throw new Error('Respuesta vacía de ZeptoMail');
         }
 
-        // Actualizar el estado del correo
-        await Email.update(
-            {
-                status: 'sent',
-                sentAt: new Date(),
-                zeptoRequestId: response.data?.request_id || null
-            },
-            { where: { id: emailData.id } }
-        );
+        // Verificar si hay error en la respuesta
+        if (response.data.error) {
+            throw new Error(`Error de ZeptoMail: ${JSON.stringify(response.data.error)}`);
+        }
 
-        return response.data;
+        // Verificar si la respuesta es exitosa
+        if (response.data.data && response.data.data[0] && response.data.data[0].code === 'EM_104') {
+            // Actualizar el estado del correo
+            await Email.update(
+                {
+                    status: 'sent',
+                    sentAt: new Date(),
+                    zeptoRequestId: response.data.request_id || null
+                },
+                { where: { id: emailData.id } }
+            );
+            return response.data;
+        } else {
+            throw new Error(`Respuesta inesperada de ZeptoMail: ${JSON.stringify(response.data)}`);
+        }
     } catch (error) {
         console.error('=== ERROR EN sendHTMLEmail ===');
         console.error('Detalles del error:', {
