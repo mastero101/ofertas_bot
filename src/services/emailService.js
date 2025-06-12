@@ -8,19 +8,24 @@ const ZEPTO_FROM_EMAIL = process.env.ZEPTO_FROM_EMAIL;
 
 async function sendHTMLEmail(emailData) {
     try {
-        console.log('sendHTMLEmail received emailData:', emailData);
-        console.log('emailData.scheduledFor:', emailData.scheduledFor);
-        // Si el correo está programado, solo actualizar el estado
+        console.log('sendHTMLEmail: Received emailData:', emailData);
+        console.log('sendHTMLEmail: Type of emailData.scheduledFor:', typeof emailData.scheduledFor);
+        console.log('sendHTMLEmail: Value of emailData.scheduledFor:', emailData.scheduledFor);
+
+        // Si el correo está programado (es decir, scheduledFor tiene un valor), solo actualizar el estado y no enviar inmediatamente
         if (emailData.scheduledFor) {
+            console.log('sendHTMLEmail: emailData.scheduledFor is truthy. Marking email as scheduled.');
             await Email.update(
-                { 
+                {
                     status: 'scheduled',
                     scheduledFor: emailData.scheduledFor
                 },
                 { where: { id: emailData.id } }
             );
-            return { message: 'Email scheduled successfully' };
+            return { message: 'Email scheduled successfully', emailId: emailData.id, status: 'scheduled' }; // Return immediately
         }
+
+        console.log('sendHTMLEmail: emailData.scheduledFor is falsy. Proceeding with immediate email sending.');
 
         // Configuración para ZeptoMail
         const config = {
@@ -44,19 +49,21 @@ async function sendHTMLEmail(emailData) {
                 }],
                 subject: emailData.subject,
                 textbody: emailData.offerDescription,
-                htmlbody: generateEmailHTML(emailData)
+                htmlbody: await generateEmailHTML(emailData)
             }
         };
+
+        console.log('sendHTMLEmail: Axios config data to be sent:', config.data);
 
         const response = await axios(config);
         const responseData = response.data;
 
-        console.log('ZeptoMail API Response:', responseData);
+        console.log('sendHTMLEmail: ZeptoMail API Response:', responseData);
 
         // Guardar el request_id en la base de datos
         if (responseData.request_id) {
             await Email.update(
-                { 
+                {
                     zeptoRequestId: responseData.request_id,
                     status: 'sent',
                     sentAt: new Date()
@@ -67,7 +74,7 @@ async function sendHTMLEmail(emailData) {
 
         return responseData;
     } catch (error) {
-        console.error('Error sending email:', error);
+        console.error('sendHTMLEmail: Error sending email:', error);
         // Actualizar el estado a 'failed' en caso de error
         if (emailData.id) {
             await Email.update(
@@ -79,8 +86,9 @@ async function sendHTMLEmail(emailData) {
     }
 }
 
-function generateEmailHTML(emailData) {
-    const htmlContent = ejs.renderFile(
+async function generateEmailHTML(emailData) { // Make this async
+    console.log('generateEmailHTML: Generating HTML for email:', emailData.id);
+    const htmlContent = await ejs.renderFile( // AWAIT here
         path.join(__dirname, '../../views/email-template.ejs'),
         {
             companyName: emailData.companyName || 'HAMSE',
