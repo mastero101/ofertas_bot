@@ -84,6 +84,11 @@ async function sendHTMLEmail(emailData) {
         }
 
         // Configuración de Axios con mejor manejo de errores
+        console.log('Enviando solicitud a ZeptoMail con payload:', JSON.stringify({
+            ...emailPayload,
+            htmlbody: emailPayload.htmlbody ? '[OMITIDO POR LONGITUD]' : undefined
+        }, null, 2));
+
         const response = await axios({
             method: 'post',
             url: 'https://api.zeptomail.com/v1.1/email',
@@ -103,7 +108,9 @@ async function sendHTMLEmail(emailData) {
             transformResponse: [(data) => {
                 if (!data) return null;
                 try {
-                    return JSON.parse(data);
+                    const parsed = JSON.parse(data);
+                    console.log('Respuesta de ZeptoMail:', JSON.stringify(parsed, null, 2));
+                    return parsed;
                 } catch (e) {
                     console.warn('Error al parsear respuesta:', e);
                     return data;
@@ -118,24 +125,31 @@ async function sendHTMLEmail(emailData) {
 
         // Verificar si hay error en la respuesta
         if (response.data.error) {
-            throw new Error(`Error de ZeptoMail: ${JSON.stringify(response.data.error)}`);
+            const errorMessage = typeof response.data.error === 'object' 
+                ? JSON.stringify(response.data.error)
+                : response.data.error;
+            throw new Error(`Error de ZeptoMail: ${errorMessage}`);
         }
 
         // Verificar si la respuesta es exitosa
-        if (response.data.data && response.data.data[0] && response.data.data[0].code === 'EM_104') {
-            // Actualizar el estado del correo
-            await Email.update(
-                {
-                    status: 'sent',
-                    sentAt: new Date(),
-                    zeptoRequestId: response.data.request_id || null
-                },
-                { where: { id: emailData.id } }
-            );
-            return response.data;
-        } else {
-            throw new Error(`Respuesta inesperada de ZeptoMail: ${JSON.stringify(response.data)}`);
+        if (response.data.data && Array.isArray(response.data.data)) {
+            const successResponse = response.data.data.find(item => item.code === 'EM_104');
+            if (successResponse) {
+                // Actualizar el estado del correo
+                await Email.update(
+                    {
+                        status: 'sent',
+                        sentAt: new Date(),
+                        zeptoRequestId: response.data.request_id || null
+                    },
+                    { where: { id: emailData.id } }
+                );
+                return response.data;
+            }
         }
+
+        // Si llegamos aquí, la respuesta no fue exitosa
+        throw new Error(`Respuesta inesperada de ZeptoMail: ${JSON.stringify(response.data)}`);
     } catch (error) {
         console.error('=== ERROR EN sendHTMLEmail ===');
         console.error('Detalles del error:', {
@@ -146,7 +160,10 @@ async function sendHTMLEmail(emailData) {
             config: {
                 url: error.config?.url,
                 method: error.config?.method,
-                headers: error.config?.headers
+                headers: {
+                    ...error.config?.headers,
+                    'Authorization': '[OCULTO]'
+                }
             }
         });
 
