@@ -72,7 +72,19 @@ async function sendHTMLEmail(emailData) {
         console.log('Payload del correo (longitud total htmlbody):', emailPayload.htmlbody ? emailPayload.htmlbody.length : 0);
         console.log('Payload completo (sin htmlbody, por brevedad):', JSON.stringify({ ...emailPayload, htmlbody: '[OMITIDO POR LONGITUD]' }, null, 2));
 
-        const config = {
+        // Validar el payload antes de enviar
+        if (!emailPayload.to || !emailPayload.to.length) {
+            throw new Error('No se especificaron destinatarios');
+        }
+        if (!emailPayload.from || !emailPayload.from.address) {
+            throw new Error('No se especificó el remitente');
+        }
+        if (!emailPayload.subject) {
+            throw new Error('No se especificó el asunto');
+        }
+
+        // Configuración de Axios con mejor manejo de errores
+        const response = await axios({
             method: 'post',
             url: 'https://api.zeptomail.com/v1.1/email',
             headers: {
@@ -82,11 +94,11 @@ async function sendHTMLEmail(emailData) {
                 'User-Agent': 'Node.js/1.0'
             },
             data: emailPayload,
-            timeout: 30000, // Aumentado a 30 segundos
+            timeout: 30000,
             maxContentLength: Infinity,
             maxBodyLength: Infinity,
             validateStatus: function (status) {
-                return status >= 200 && status < 500;
+                return status >= 200 && status < 300;
             },
             transformResponse: [(data) => {
                 try {
@@ -95,97 +107,24 @@ async function sendHTMLEmail(emailData) {
                     return data;
                 }
             }]
-        };
-
-        console.log('Enviando solicitud a ZeptoMail...');
-        console.log('Headers:', {
-            ...config.headers,
-            'Authorization': 'Zoho-enczapikey [OCULTO]'
         });
 
-        try {
-            // Validar el payload antes de enviar
-            if (!emailPayload.to || !emailPayload.to.length) {
-                throw new Error('No se especificaron destinatarios');
-            }
-
-            if (!emailPayload.from || !emailPayload.from.address) {
-                throw new Error('No se especificó el remitente');
-            }
-
-            if (!emailPayload.subject) {
-                throw new Error('No se especificó el asunto');
-            }
-
-            const response = await axios(config);
-            
-            // Verificar si la respuesta es válida
-            if (!response.data) {
-                throw new Error('Respuesta vacía de ZeptoMail');
-            }
-
-            console.log('Respuesta de ZeptoMail:', response.data);
-
-            if (response.data.request_id) {
-                await Email.update(
-                    {
-                        zeptoRequestId: response.data.request_id,
-                        status: 'sent',
-                        sentAt: new Date()
-                    },
-                    { where: { id: emailData.id } }
-                );
-            } else {
-                console.warn('ZeptoMail no devolvió un request_id en la respuesta:', response.data);
-            }
-
-            return response.data;
-        } catch (error) {
-            console.error('=== ERROR EN sendHTMLEmail ===');
-            console.error('Detalles del error:', {
-                message: error.message,
-                status: error.response?.status,
-                statusText: error.response?.statusText,
-                data: error.response?.data,
-                config: {
-                    url: error.config?.url,
-                    method: error.config?.method,
-                    headers: {
-                        ...error.config?.headers,
-                        'Authorization': 'Zoho-enczapikey [OCULTO]'
-                    }
-                }
-            });
-
-            // Log del payload que causó el error
-            if (error.config?.data) {
-                console.error('Payload que causó el error:', JSON.stringify(error.config.data, null, 2));
-            }
-
-            // Intentar obtener más detalles del error
-            if (error.response?.data) {
-                try {
-                    const errorData = typeof error.response.data === 'string' 
-                        ? JSON.parse(error.response.data) 
-                        : error.response.data;
-                    console.error('Detalles adicionales del error:', errorData);
-                } catch (e) {
-                    console.error('Error al parsear detalles adicionales:', e);
-                }
-            }
-
-            if (emailData.id) {
-                await Email.update(
-                    { 
-                        status: 'failed',
-                        errorDetails: error.message
-                    },
-                    { where: { id: emailData.id } }
-                );
-            }
-
-            throw error;
+        // Validar la respuesta
+        if (!response.data || !response.data.request_id) {
+            console.warn('ZeptoMail no devolvió un request_id en la respuesta');
         }
+
+        // Actualizar el estado del correo
+        await Email.update(
+            {
+                status: 'sent',
+                sentAt: new Date(),
+                zeptoRequestId: response.data?.request_id || null
+            },
+            { where: { id: emailData.id } }
+        );
+
+        return response.data;
     } catch (error) {
         console.error('=== ERROR EN sendHTMLEmail ===');
         console.error('Detalles del error:', {
@@ -196,25 +135,31 @@ async function sendHTMLEmail(emailData) {
             config: {
                 url: error.config?.url,
                 method: error.config?.method,
-                headers: {
-                    ...error.config?.headers,
-                    'Authorization': 'Zoho-enczapikey [OCULTO]'
-                },
-                data: error.config?.data
+                headers: error.config?.headers
             }
         });
 
-        // Log del payload que causó el error
-        if (error.config?.data) {
-            console.error('Payload que causó el error:', JSON.stringify(error.config.data, null, 2));
+        // Intentar obtener más detalles del error
+        let errorDetails = error.message;
+        try {
+            if (error.response?.data) {
+                const errorData = typeof error.response.data === 'string' 
+                    ? JSON.parse(error.response.data) 
+                    : error.response.data;
+                errorDetails = JSON.stringify(errorData);
+            }
+        } catch (e) {
+            console.error('Error al parsear detalles adicionales:', e);
         }
 
-        if (emailData.id) {
-            await Email.update(
-                { status: 'failed' },
-                { where: { id: emailData.id } }
-            );
-        }
+        // Actualizar el estado del correo con los detalles del error
+        await Email.update(
+            {
+                status: 'failed',
+                errorDetails: errorDetails
+            },
+            { where: { id: emailData.id } }
+        );
 
         throw error;
     }
