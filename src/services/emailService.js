@@ -90,7 +90,7 @@ async function sendHTMLEmail(emailData) {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                'Authorization': `Zoho-enczapikey ${process.env.ZEPTO_API_KEY}`,
+                'Authorization': process.env.ZEPTO_API_KEY,
                 'User-Agent': 'Node.js/1.0'
             },
             data: emailPayload,
