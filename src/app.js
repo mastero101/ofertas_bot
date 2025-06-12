@@ -365,6 +365,8 @@ app.post('/send-emails', upload.single('productImage'), async (req, res) => {
         const { Email } = require('./models/Email');
         const createdEmail = await Email.create(emailData);
         
+        console.log('Created Email object before sending/scheduling:', createdEmail.toJSON());
+
         // Enviar el correo (o programarlo si tiene fecha programada)
         const result = await sendHTMLEmail(createdEmail.toJSON());
 
@@ -681,6 +683,8 @@ app.post('/send-mass-emails', upload.fields([
                 // Crear el correo en la base de datos
                 const createdEmail = await Email.create(emailData);
                 
+                console.log('Created Email object for mass email before sending/scheduling:', createdEmail.toJSON());
+
                 // Enviar el correo (o programarlo si tiene fecha programada)
                 await sendHTMLEmail(createdEmail.toJSON());
 

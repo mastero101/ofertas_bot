@@ -98,8 +98,11 @@ router.post('/emails/:emailId/resend', async (req, res) => {
             return res.status(404).json({ error: 'Correo no encontrado' });
         }
 
+        const emailDataToSend = email.toJSON();
+        delete emailDataToSend.scheduledFor; // Asegurarse de que no se trate como programado para envío inmediato
+
         // Enviar el correo
-        await sendHTMLEmail(email.toJSON());
+        await sendHTMLEmail(emailDataToSend);
 
         // Actualizar el estado
         await email.update({
