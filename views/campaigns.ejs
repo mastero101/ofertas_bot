@@ -200,7 +200,7 @@
 
         async function resendEmail(emailId) {
             try {
-                const response = await fetch(`/api/emails/${emailId}/resend`, { method: 'POST' });
+                const response = await fetch(`/api/campaigns/emails/${emailId}/resend`, { method: 'POST' });
                 if (response.ok) {
                     alert('Correo reenviado exitosamente');
                     // Recargar los correos de la campaña actual en el modal
