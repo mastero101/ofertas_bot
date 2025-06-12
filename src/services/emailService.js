@@ -64,7 +64,8 @@ async function sendHTMLEmail(emailData) {
             textbody: emailData.offerDescription,
             htmlbody: htmlContent,
             track_clicks: true,
-            track_opens: true
+            track_opens: true,
+            track_links: true
         };
 
         // Log del payload (sin el HTML por brevedad)
@@ -113,14 +114,6 @@ async function sendHTMLEmail(emailData) {
                 headers: response.headers,
                 data: response.data
             });
-
-            // Si hay un error en la respuesta
-            if (response.data && response.data.error) {
-                const errorDetails = typeof response.data.error === 'object' 
-                    ? JSON.stringify(response.data.error, null, 2)
-                    : response.data.error;
-                throw new Error(`Error de ZeptoMail: ${errorDetails}`);
-            }
 
             // Verificar si la respuesta es exitosa
             if (response.data && response.data.data && Array.isArray(response.data.data)) {
