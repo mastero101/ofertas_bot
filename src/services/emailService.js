@@ -64,8 +64,7 @@ async function sendHTMLEmail(emailData) {
             textbody: emailData.offerDescription,
             htmlbody: htmlContent,
             track_clicks: true,
-            track_opens: true,
-            track_links: true
+            track_opens: true
         };
 
         // Log del payload (sin el HTML por brevedad)
