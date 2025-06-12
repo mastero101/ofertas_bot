@@ -100,6 +100,10 @@ router.post('/emails/:emailId/resend', async (req, res) => {
 
         const emailDataToSend = email.toJSON();
         delete emailDataToSend.scheduledFor; // Asegurarse de que no se trate como programado para envío inmediato
+        
+        // Añadir el baseUrl para las URLs de seguimiento
+        emailDataToSend.baseUrl = process.env.BASE_URL;
+        console.log('Reenviando correo con baseUrl:', emailDataToSend.baseUrl);
 
         // Enviar el correo
         await sendHTMLEmail(emailDataToSend);
@@ -200,7 +204,11 @@ router.post('/:campaignId/send-now', async (req, res) => {
         // Enviar cada correo
         for (const email of pendingEmails) {
             try {
-                await sendHTMLEmail(email.toJSON());
+                const emailData = email.toJSON();
+                emailData.baseUrl = process.env.BASE_URL;
+                console.log('Enviando correo con baseUrl:', emailData.baseUrl);
+                
+                await sendHTMLEmail(emailData);
                 results.push({ email: email.to, status: 'success' });
             } catch (error) {
                 console.error(`Error sending email to ${email.to}:`, error);

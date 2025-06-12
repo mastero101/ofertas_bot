@@ -60,7 +60,9 @@ async function sendHTMLEmail(emailData) {
             }],
             subject: emailData.subject,
             textbody: emailData.offerDescription || '',
-            htmlbody: htmlContent
+            htmlbody: htmlContent,
+            track_clicks: true,
+            track_opens: true
         };
 
         console.log('Payload del correo:', JSON.stringify(emailPayload, null, 2));
@@ -71,12 +73,22 @@ async function sendHTMLEmail(emailData) {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                'Authorization': `Zoho-enczapikey ${process.env.ZEPTO_API_KEY}`
+                'Authorization': `Zoho-enczapikey ${process.env.ZEPTO_API_KEY}`,
+                'User-Agent': 'Node.js/1.0'
             },
-            data: emailPayload
+            data: emailPayload,
+            timeout: 10000, // 10 segundos de timeout
+            validateStatus: function (status) {
+                return status >= 200 && status < 500; // Aceptar cualquier status que no sea 500
+            }
         };
 
         console.log('Enviando solicitud a ZeptoMail...');
+        console.log('Headers:', {
+            ...config.headers,
+            'Authorization': 'Zoho-enczapikey [OCULTO]'
+        });
+
         const response = await axios(config);
         const responseData = response.data;
 
@@ -112,6 +124,11 @@ async function sendHTMLEmail(emailData) {
             }
         });
 
+        // Log del payload que causó el error
+        if (error.config?.data) {
+            console.error('Payload que causó el error:', JSON.stringify(error.config.data, null, 2));
+        }
+
         if (emailData.id) {
             await Email.update(
                 { status: 'failed' },
@@ -123,9 +140,11 @@ async function sendHTMLEmail(emailData) {
     }
 }
 
-async function generateEmailHTML(emailData) { // Make this async
+async function generateEmailHTML(emailData) {
     console.log('generateEmailHTML: Generating HTML for email:', emailData.id);
-    const htmlContent = await ejs.renderFile( // AWAIT here
+    console.log('generateEmailHTML: Using baseUrl:', emailData.baseUrl);
+    
+    const htmlContent = await ejs.renderFile(
         path.join(__dirname, '../../views/email-template.ejs'),
         {
             companyName: emailData.companyName || 'HAMSE',
@@ -136,10 +155,12 @@ async function generateEmailHTML(emailData) { // Make this async
             offerLink: emailData.offerLink,
             unsubscribeLink: emailData.unsubscribeLink || '#',
             productImage: emailData.productImage,
-            trackingPixel: `${process.env.BASE_URL}/track/open/${emailData.id}`,
-            trackingLink: (link) => `${process.env.BASE_URL}/track/click/${emailData.id}?link=${encodeURIComponent(link)}`
+            trackingPixel: `${emailData.baseUrl}/track/open/${emailData.id}`,
+            trackingLink: (link) => `${emailData.baseUrl}/track/click/${emailData.id}?link=${encodeURIComponent(link)}`
         }
     );
+    
+    console.log('generateEmailHTML: HTML generated successfully');
     return htmlContent;
 }
 
