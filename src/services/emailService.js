@@ -8,13 +8,17 @@ const ZEPTO_FROM_EMAIL = process.env.ZEPTO_FROM_EMAIL;
 
 async function sendHTMLEmail(emailData) {
     try {
-        console.log('sendHTMLEmail: Received emailData:', emailData);
-        console.log('sendHTMLEmail: Type of emailData.scheduledFor:', typeof emailData.scheduledFor);
-        console.log('sendHTMLEmail: Value of emailData.scheduledFor:', emailData.scheduledFor);
+        console.log('=== INICIO DE sendHTMLEmail ===');
+        console.log('Datos del correo recibidos:', {
+            id: emailData.id,
+            to: emailData.to,
+            subject: emailData.subject,
+            scheduledFor: emailData.scheduledFor
+        });
 
-        // Si el correo está programado (es decir, scheduledFor tiene un valor), solo actualizar el estado y no enviar inmediatamente
+        // Si el correo está programado
         if (emailData.scheduledFor) {
-            console.log('sendHTMLEmail: emailData.scheduledFor is truthy. Marking email as scheduled.');
+            console.log('Correo programado detectado. Fecha programada:', emailData.scheduledFor);
             await Email.update(
                 {
                     status: 'scheduled',
@@ -22,10 +26,17 @@ async function sendHTMLEmail(emailData) {
                 },
                 { where: { id: emailData.id } }
             );
-            return { message: 'Email scheduled successfully', emailId: emailData.id, status: 'scheduled' }; // Return immediately
+            console.log('Estado del correo actualizado a "scheduled"');
+            return { message: 'Email scheduled successfully', emailId: emailData.id, status: 'scheduled' };
         }
 
-        console.log('sendHTMLEmail: emailData.scheduledFor is falsy. Proceeding with immediate email sending.');
+        console.log('Preparando envío inmediato del correo...');
+
+        // Verificar variables de entorno
+        console.log('Verificando variables de entorno:');
+        console.log('ZEPTO_API_KEY existe:', !!process.env.ZEPTO_API_KEY);
+        console.log('BOUNCE_EMAIL existe:', !!process.env.BOUNCE_EMAIL);
+        console.log('FROM_EMAIL existe:', !!process.env.FROM_EMAIL);
 
         // Configuración para ZeptoMail
         const config = {
@@ -53,15 +64,30 @@ async function sendHTMLEmail(emailData) {
             }
         };
 
-        console.log('sendHTMLEmail: Axios config data to be sent:', config.data);
+        console.log('Configuración de la solicitud preparada:', {
+            url: config.url,
+            method: config.method,
+            headers: {
+                ...config.headers,
+                'Authorization': 'Zoho-enczapikey [OCULTO]' // Ocultamos la API key por seguridad
+            }
+        });
 
+        console.log('Datos del correo a enviar:', {
+            to: config.data.to,
+            subject: config.data.subject,
+            from: config.data.from,
+            htmlbody_length: config.data.htmlbody?.length || 0
+        });
+
+        console.log('Enviando solicitud a ZeptoMail...');
         const response = await axios(config);
         const responseData = response.data;
 
-        console.log('sendHTMLEmail: ZeptoMail API Response:', responseData);
+        console.log('Respuesta de ZeptoMail recibida:', responseData);
 
-        // Guardar el request_id en la base de datos
         if (responseData.request_id) {
+            console.log('Actualizando estado del correo con request_id:', responseData.request_id);
             await Email.update(
                 {
                     zeptoRequestId: responseData.request_id,
@@ -70,18 +96,29 @@ async function sendHTMLEmail(emailData) {
                 },
                 { where: { id: emailData.id } }
             );
+            console.log('Estado del correo actualizado a "sent"');
         }
 
+        console.log('=== FIN DE sendHTMLEmail - ÉXITO ===');
         return responseData;
     } catch (error) {
-        console.error('sendHTMLEmail: Error sending email:', error);
-        // Actualizar el estado a 'failed' en caso de error
+        console.error('=== ERROR EN sendHTMLEmail ===');
+        console.error('Detalles del error:', {
+            message: error.message,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data
+        });
+
         if (emailData.id) {
+            console.log('Actualizando estado del correo a "failed"');
             await Email.update(
                 { status: 'failed' },
                 { where: { id: emailData.id } }
             );
         }
+
+        console.error('=== FIN DE sendHTMLEmail - ERROR ===');
         throw error;
     }
 }
