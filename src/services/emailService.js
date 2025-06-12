@@ -89,67 +89,107 @@ async function sendHTMLEmail(emailData) {
             htmlbody: emailPayload.htmlbody ? '[OMITIDO POR LONGITUD]' : undefined
         }, null, 2));
 
-        const response = await axios({
-            method: 'post',
-            url: 'https://api.zeptomail.com/v1.1/email',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': process.env.ZEPTO_API_KEY,
-                'User-Agent': 'Node.js/1.0'
-            },
-            data: emailPayload,
-            timeout: 30000,
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity,
-            validateStatus: function (status) {
-                return status >= 200 && status < 300;
-            },
-            transformResponse: [(data) => {
-                if (!data) return null;
-                try {
-                    const parsed = JSON.parse(data);
-                    console.log('Respuesta de ZeptoMail:', JSON.stringify(parsed, null, 2));
-                    return parsed;
-                } catch (e) {
-                    console.warn('Error al parsear respuesta:', e);
-                    return data;
-                }
-            }]
-        });
+        try {
+            const response = await axios({
+                method: 'post',
+                url: 'https://api.zeptomail.com/v1.1/email',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': process.env.ZEPTO_API_KEY,
+                    'User-Agent': 'Node.js/1.0'
+                },
+                data: emailPayload,
+                timeout: 30000,
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity,
+                validateStatus: null // Permitir cualquier código de estado para ver el error completo
+            });
 
-        // Validar la respuesta
-        if (!response.data) {
-            throw new Error('Respuesta vacía de ZeptoMail');
-        }
+            console.log('Respuesta completa de ZeptoMail:', {
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers,
+                data: response.data
+            });
 
-        // Verificar si hay error en la respuesta
-        if (response.data.error) {
-            const errorMessage = typeof response.data.error === 'object' 
-                ? JSON.stringify(response.data.error)
-                : response.data.error;
-            throw new Error(`Error de ZeptoMail: ${errorMessage}`);
-        }
-
-        // Verificar si la respuesta es exitosa
-        if (response.data.data && Array.isArray(response.data.data)) {
-            const successResponse = response.data.data.find(item => item.code === 'EM_104');
-            if (successResponse) {
-                // Actualizar el estado del correo
-                await Email.update(
-                    {
-                        status: 'sent',
-                        sentAt: new Date(),
-                        zeptoRequestId: response.data.request_id || null
-                    },
-                    { where: { id: emailData.id } }
-                );
-                return response.data;
+            // Si hay un error en la respuesta
+            if (response.data && response.data.error) {
+                const errorDetails = typeof response.data.error === 'object' 
+                    ? JSON.stringify(response.data.error, null, 2)
+                    : response.data.error;
+                throw new Error(`Error de ZeptoMail: ${errorDetails}`);
             }
-        }
 
-        // Si llegamos aquí, la respuesta no fue exitosa
-        throw new Error(`Respuesta inesperada de ZeptoMail: ${JSON.stringify(response.data)}`);
+            // Verificar si la respuesta es exitosa
+            if (response.data && response.data.data && Array.isArray(response.data.data)) {
+                const successResponse = response.data.data.find(item => item.code === 'EM_104');
+                if (successResponse) {
+                    await Email.update(
+                        {
+                            status: 'sent',
+                            sentAt: new Date(),
+                            zeptoRequestId: response.data.request_id || null
+                        },
+                        { where: { id: emailData.id } }
+                    );
+                    return response.data;
+                }
+            }
+
+            throw new Error(`Respuesta inesperada de ZeptoMail: ${JSON.stringify(response.data, null, 2)}`);
+        } catch (error) {
+            console.error('=== ERROR DETALLADO EN sendHTMLEmail ===');
+            
+            // Log del error completo
+            if (error.response) {
+                console.error('Respuesta de error:', {
+                    status: error.response.status,
+                    statusText: error.response.statusText,
+                    headers: error.response.headers,
+                    data: error.response.data
+                });
+            }
+
+            // Log del error de red
+            if (error.request) {
+                console.error('Error de red:', {
+                    method: error.request.method,
+                    path: error.request.path,
+                    headers: error.request.getHeaders?.()
+                });
+            }
+
+            // Log del mensaje de error
+            console.error('Mensaje de error:', error.message);
+
+            // Log del stack trace
+            console.error('Stack trace:', error.stack);
+
+            // Intentar obtener más detalles del error
+            let errorDetails = error.message;
+            try {
+                if (error.response?.data) {
+                    const errorData = typeof error.response.data === 'string' 
+                        ? JSON.parse(error.response.data) 
+                        : error.response.data;
+                    errorDetails = JSON.stringify(errorData, null, 2);
+                }
+            } catch (e) {
+                console.error('Error al parsear detalles adicionales:', e);
+            }
+
+            // Actualizar el estado del correo con los detalles del error
+            await Email.update(
+                {
+                    status: 'failed',
+                    errorDetails: errorDetails
+                },
+                { where: { id: emailData.id } }
+            );
+
+            throw error;
+        }
     } catch (error) {
         console.error('=== ERROR EN sendHTMLEmail ===');
         console.error('Detalles del error:', {
