@@ -94,23 +94,55 @@ async function sendHTMLEmail(emailData) {
             'Authorization': 'Zoho-enczapikey [OCULTO]'
         });
 
-        const response = await axios(config);
-        const responseData = response.data;
+        try {
+            const response = await axios(config);
+            const responseData = response.data;
 
-        console.log('Respuesta de ZeptoMail:', responseData);
+            console.log('Respuesta de ZeptoMail:', responseData);
 
-        if (responseData.request_id) {
-            await Email.update(
-                {
-                    zeptoRequestId: responseData.request_id,
-                    status: 'sent',
-                    sentAt: new Date()
-                },
-                { where: { id: emailData.id } }
-            );
+            if (responseData.request_id) {
+                await Email.update(
+                    {
+                        zeptoRequestId: responseData.request_id,
+                        status: 'sent',
+                        sentAt: new Date()
+                    },
+                    { where: { id: emailData.id } }
+                );
+            }
+
+            return responseData;
+        } catch (error) {
+            console.error('=== ERROR EN sendHTMLEmail ===');
+            console.error('Detalles del error:', {
+                message: error.message,
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                config: {
+                    url: error.config?.url,
+                    method: error.config?.method,
+                    headers: {
+                        ...error.config?.headers,
+                        'Authorization': 'Zoho-enczapikey [OCULTO]'
+                    }
+                }
+            });
+
+            // Log del payload que causó el error
+            if (error.config?.data) {
+                console.error('Payload que causó el error:', JSON.stringify(error.config.data, null, 2));
+            }
+
+            if (emailData.id) {
+                await Email.update(
+                    { status: 'failed' },
+                    { where: { id: emailData.id } }
+                );
+            }
+
+            throw error;
         }
-
-        return responseData;
     } catch (error) {
         console.error('=== ERROR EN sendHTMLEmail ===');
         console.error('Detalles del error:', {
