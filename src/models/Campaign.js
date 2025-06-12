@@ -13,17 +13,17 @@ const Campaign = sequelize.define('Campaign', {
         allowNull: false
     },
     description: {
-        type: DataTypes.TEXT
+        type: DataTypes.TEXT,
+        allowNull: true
     },
     status: {
-        type: DataTypes.ENUM('draft', 'scheduled', 'active', 'completed', 'paused'),
-        defaultValue: 'draft'
+        type: DataTypes.ENUM('active', 'paused', 'completed'),
+        defaultValue: 'active'
     },
-    scheduledStart: {
-        type: DataTypes.DATE
-    },
-    scheduledEnd: {
-        type: DataTypes.DATE
+    scheduledFor: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Fecha y hora programada para el envío de la campaña'
     },
     totalEmails: {
         type: DataTypes.INTEGER,

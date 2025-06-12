@@ -51,7 +51,9 @@
                                         <div class="card-body">
                                             <div class="d-flex justify-content-between align-items-center mb-3">
                                                 <h5 class="card-title mb-0"><%= campaign.name %></h5>
-                                                <span class="badge <%= campaign.status === 'active' ? 'bg-success' : campaign.status === 'paused' ? 'bg-warning text-dark' : 'bg-secondary' %>"><%= campaign.status %></span>
+                                                <span class="badge <%= campaign.status === 'active' ? 'bg-success' : 'bg-warning' %>">
+                                                    <%= campaign.status === 'active' ? 'Activa' : 'Pausada' %>
+                                                </span>
                                             </div>
                                             <div class="row mb-3 text-muted small">
                                                 <div class="col-6">
@@ -69,29 +71,39 @@
                                             </div>
                                             <p class="card-text text-muted small"><strong>Descripción:</strong> <%= campaign.description %></p>
                                             <p class="card-text text-muted small"><strong>Creada:</strong> <%= new Date(campaign.createdAt).toLocaleString() %></p>
-                                            <% if (campaign.scheduledStart) { %>
-                                                <p class="card-text text-muted small"><strong>Inicio:</strong> <%= new Date(campaign.scheduledStart).toLocaleString() %></p>
-                                            <% } %>
-                                            <% if (campaign.scheduledEnd) { %>
-                                                <p class="card-text text-muted small"><strong>Fin:</strong> <%= new Date(campaign.scheduledEnd).toLocaleString() %></p>
+                                            <% if (campaign.scheduledFor) { %>
+                                                <p class="card-text text-muted small">
+                                                    <strong>Programada para:</strong> 
+                                                    <span class="text-primary">
+                                                        <%= new Date(campaign.scheduledFor).toLocaleString() %>
+                                                    </span>
+                                                </p>
                                             <% } %>
                                         </div>
                                         <div class="card-footer d-flex justify-content-between">
-                                            <button onclick="viewCampaignEmails('<%= campaign.id %>')" class="btn btn-sm btn-primary">
-                                                <i class="fas fa-list"></i> Ver Correos
+                                            <button onclick="viewCampaignEmails('<%= campaign.id %>')" class="btn btn-sm btn-info">
+                                                <i class="fas fa-envelope"></i> Ver Correos
                                             </button>
-                                            <% if (campaign.status === 'active') { %>
-                                                <button onclick="pauseCampaign('<%= campaign.id %>')" class="btn btn-sm btn-warning text-dark">
-                                                    <i class="fas fa-pause"></i> Pausar
+                                            <div class="btn-group">
+                                                <% if (campaign.status === 'active') { %>
+                                                    <button onclick="pauseCampaign('<%= campaign.id %>')" class="btn btn-sm btn-warning">
+                                                        <i class="fas fa-pause"></i>
+                                                    </button>
+                                                <% } else { %>
+                                                    <button onclick="resumeCampaign('<%= campaign.id %>')" class="btn btn-sm btn-success">
+                                                        <i class="fas fa-play"></i>
+                                                    </button>
+                                                <% } %>
+                                                <button onclick="editSchedule('<%= campaign.id %>', '<%= campaign.scheduledFor %>')" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-clock"></i>
                                                 </button>
-                                            <% } else if (campaign.status === 'paused') { %>
-                                                <button onclick="resumeCampaign('<%= campaign.id %>')" class="btn btn-sm btn-success">
-                                                    <i class="fas fa-play"></i> Reanudar
+                                                <button onclick="sendNow('<%= campaign.id %>')" class="btn btn-sm btn-secondary">
+                                                    <i class="fas fa-paper-plane"></i>
                                                 </button>
-                                            <% } %>
-                                            <button onclick="deleteCampaign('<%= campaign.id %>')" class="btn btn-sm btn-danger ms-2">
-                                                <i class="fas fa-trash"></i> Eliminar Campaña
-                                            </button>
+                                                <button onclick="deleteCampaign('<%= campaign.id %>')" class="btn btn-sm btn-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -134,12 +146,41 @@
         </div>
     </div>
 
+    <!-- Modal para editar programación -->
+    <div class="modal fade" id="scheduleModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Programar Campaña</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="scheduleForm">
+                        <input type="hidden" id="campaignId" name="campaignId">
+                        <div class="mb-3">
+                            <label for="scheduledDate" class="form-label">Fecha de envío:</label>
+                            <input type="date" class="form-control" id="scheduledDate" name="scheduledDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="scheduledTime" class="form-label">Hora de envío:</label>
+                            <input type="time" class="form-control" id="scheduledTime" name="scheduledTime" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSchedule()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let currentCampaignId = null; // Variable para almacenar el ID de la campaña actual
+        let currentCampaignId = null;
 
         async function viewCampaignEmails(campaignId) {
-            currentCampaignId = campaignId; // Almacenar el ID de la campaña
+            currentCampaignId = campaignId;
             try {
                 const response = await fetch(`/api/campaigns/${campaignId}/emails`);
                 const emails = await response.json();
@@ -149,7 +190,8 @@
                     <tr>
                         <td>${email.to}</td>
                         <td>${email.subject}</td>
-                        <td><span class="badge ${email.status === 'sent' ? 'bg-success' : email.status === 'pending' ? 'bg-warning text-dark' : 'bg-danger'}">${email.status}</span></td>
+                        <td><span class="badge ${email.status === 'sent' ? 'bg-success' : email.status === 'scheduled' ? 'bg-info' : email.status === 'pending' ? 'bg-warning text-dark' : 'bg-danger'}">${email.status}</span></td>
+                        <td>${email.scheduledFor ? new Date(email.scheduledFor).toLocaleString() : '-'}</td>
                         <td>${email.sentAt ? new Date(email.sentAt).toLocaleString() : '-'}</td>
                         <td>${email.trackingOpened ? 'Sí' : 'No'}</td>
                         <td>
@@ -168,7 +210,75 @@
             }
         }
 
-        // No es necesaria una función closeEmailsModal() si se usa data-bs-dismiss="modal"
+        async function editSchedule(campaignId, currentSchedule) {
+            document.getElementById('campaignId').value = campaignId;
+            
+            if (currentSchedule) {
+                const date = new Date(currentSchedule);
+                document.getElementById('scheduledDate').value = date.toISOString().split('T')[0];
+                document.getElementById('scheduledTime').value = date.toTimeString().slice(0, 5);
+            } else {
+                document.getElementById('scheduledDate').value = '';
+                document.getElementById('scheduledTime').value = '';
+            }
+
+            const scheduleModal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+            scheduleModal.show();
+        }
+
+        async function saveSchedule() {
+            const campaignId = document.getElementById('campaignId').value;
+            const date = document.getElementById('scheduledDate').value;
+            const time = document.getElementById('scheduledTime').value;
+
+            if (!date || !time) {
+                alert('Por favor complete todos los campos');
+                return;
+            }
+
+            const scheduledFor = new Date(`${date}T${time}`).toISOString();
+
+            try {
+                const response = await fetch(`/api/campaigns/${campaignId}/schedule`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ scheduledFor })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error al programar la campaña: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al programar la campaña');
+            }
+        }
+
+        async function sendNow(campaignId) {
+            if (confirm('¿Está seguro que desea enviar esta campaña ahora?')) {
+                try {
+                    const response = await fetch(`/api/campaigns/${campaignId}/send-now`, {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('Campaña enviada exitosamente');
+                        location.reload();
+                    } else {
+                        alert('Error al enviar la campaña: ' + data.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al enviar la campaña');
+                }
+            }
+        }
 
         async function pauseCampaign(campaignId) {
             try {
@@ -217,19 +327,21 @@
         }
 
         async function deleteCampaign(campaignId) {
-            if (confirm('¿Está seguro de que desea eliminar esta campaña? Todos los correos asociados también se eliminarán.')) {
+            if (confirm('¿Está seguro de que desea eliminar esta campaña y todos sus correos asociados? Esta acción es irreversible.')) {
                 try {
-                    const response = await fetch(`/api/campaigns/${campaignId}`, { method: 'DELETE' });
-                    if (response.ok) {
-                        alert('Campaña eliminada exitosamente');
-                        location.reload(); // Recargar la página para reflejar los cambios
+                    const response = await fetch(`/api/campaigns/${campaignId}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+                    if (data.message) {
+                        alert(data.message);
+                        location.reload(); // Recargar la página para actualizar la lista de campañas
                     } else {
-                        const errorData = await response.json();
-                        alert('Error al eliminar la campaña: ' + (errorData.error || response.statusText));
+                        alert('Error al eliminar la campaña: ' + (data.error || ''));
                     }
                 } catch (error) {
                     console.error('Error al eliminar la campaña:', error);
-                    alert('Error de red o servidor al intentar eliminar la campaña.');
+                    alert('Error al eliminar la campaña.');
                 }
             }
         }

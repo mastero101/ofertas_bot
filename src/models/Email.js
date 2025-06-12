@@ -14,68 +14,50 @@ const Email = sequelize.define('Email', {
             isEmail: true
         }
     },
-    customerName: {
+    subject: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    subject: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        validate: {
-            notEmpty: true
-        }
-    },
-    offerTitle: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        validate: {
-            notEmpty: true
-        }
-    },
-    offerDescription: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
-    offerPrice: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: true,
-        validate: {
-            isDecimal: true
-        }
-    },
-    offerLink: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        validate: {
-            isUrl: true
-        }
-    },
-    productImage: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        validate: {
-            isUrl: true
-        }
-    },
     status: {
-        type: DataTypes.ENUM('pending', 'scheduled', 'sent', 'failed'),
+        type: DataTypes.ENUM('pending', 'sent', 'failed', 'scheduled'),
         defaultValue: 'pending'
-    },
-    scheduledFor: {
-        type: DataTypes.DATE,
-        allowNull: true
     },
     sentAt: {
         type: DataTypes.DATE,
         allowNull: true
     },
+    scheduledFor: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Fecha y hora programada para el envío'
+    },
+    customerName: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    offerTitle: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    offerDescription: {
+        type: DataTypes.TEXT,
+        allowNull: false
+    },
+    offerPrice: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
+    },
+    offerLink: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    productImage: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     trackingOpened: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
-    },
-    trackingOpenedAt: {
-        type: DataTypes.DATE,
-        allowNull: true
     },
     campaignId: {
         type: DataTypes.UUID,

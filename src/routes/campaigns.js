@@ -140,4 +140,84 @@ router.delete('/:campaignId', async (req, res) => {
     }
 });
 
+// Programar una campaña
+router.post('/:campaignId/schedule', async (req, res) => {
+    try {
+        const { scheduledFor } = req.body;
+        const campaign = await Campaign.findByPk(req.params.campaignId);
+        
+        if (!campaign) {
+            return res.status(404).json({ success: false, message: 'Campaña no encontrada' });
+        }
+
+        // Actualizar la fecha programada de la campaña
+        await campaign.update({ scheduledFor });
+
+        // Actualizar la fecha programada de todos los correos pendientes de la campaña
+        await Email.update(
+            { 
+                scheduledFor,
+                status: 'scheduled'
+            },
+            { 
+                where: { 
+                    campaignId: campaign.id,
+                    status: 'pending'
+                }
+            }
+        );
+
+        res.json({ success: true, message: 'Campaña programada exitosamente' });
+    } catch (error) {
+        console.error('Error al programar la campaña:', error);
+        res.status(500).json({ success: false, message: 'Error al programar la campaña' });
+    }
+});
+
+// Enviar campaña manualmente
+router.post('/:campaignId/send-now', async (req, res) => {
+    try {
+        const campaign = await Campaign.findByPk(req.params.campaignId);
+        
+        if (!campaign) {
+            return res.status(404).json({ success: false, message: 'Campaña no encontrada' });
+        }
+
+        // Obtener todos los correos pendientes de la campaña
+        const pendingEmails = await Email.findAll({
+            where: {
+                campaignId: campaign.id,
+                status: ['pending', 'scheduled']
+            }
+        });
+
+        const results = [];
+        const errors = [];
+
+        // Enviar cada correo
+        for (const email of pendingEmails) {
+            try {
+                await sendHTMLEmail(email.toJSON());
+                results.push({ email: email.to, status: 'success' });
+            } catch (error) {
+                console.error(`Error sending email to ${email.to}:`, error);
+                errors.push({ email: email.to, error: error.message });
+            }
+        }
+
+        // Actualizar el estado de la campaña
+        await campaign.update({ scheduledFor: null });
+
+        res.json({
+            success: true,
+            message: `Enviados: ${results.length}, Fallidos: ${errors.length}`,
+            results,
+            errors
+        });
+    } catch (error) {
+        console.error('Error al enviar la campaña:', error);
+        res.status(500).json({ success: false, message: 'Error al enviar la campaña' });
+    }
+});
+
 module.exports = router; 

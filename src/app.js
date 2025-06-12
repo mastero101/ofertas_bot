@@ -325,12 +325,15 @@ app.post('/send-emails', upload.single('productImage'), async (req, res) => {
         // Generar ID de campaña usando UUID
         const campaignId = uuidv4();
 
+        console.log('scheduledFor from request (manual):', req.body.scheduledFor);
+
         // Crear la campaña primero
         await Campaign.create({
             id: campaignId,
             name: `Campaña Manual ${new Date().toLocaleDateString()}`,
             description: req.body.subject,
-            status: 'active'
+            status: req.body.scheduledFor ? 'paused' : 'active',
+            scheduledFor: req.body.scheduledFor ? new Date(req.body.scheduledFor) : null
         });
 
         // Validar y formatear el offerLink
@@ -353,19 +356,25 @@ app.post('/send-emails', upload.single('productImage'), async (req, res) => {
             campaignId: campaignId
         };
 
-        // *** Guardar el correo en la base de datos antes de enviar ***
+        // Si hay fecha programada, agregarla
+        if (req.body.scheduledFor) {
+            emailData.scheduledFor = new Date(req.body.scheduledFor);
+        }
+
+        // Guardar el correo en la base de datos
         const { Email } = require('./models/Email');
         const createdEmail = await Email.create(emailData);
         
-        // Usar el objeto de correo creado (con ID) para enviar el email
+        // Enviar el correo (o programarlo si tiene fecha programada)
         const result = await sendHTMLEmail(createdEmail.toJSON());
-        
-        // Actualizar el estado en la base de datos a 'sent' después del envío exitoso
-        createdEmail.status = 'sent';
-        createdEmail.sentAt = new Date();
-        await createdEmail.save();
 
-        res.json({ success: true, message: 'Email sent successfully', result });
+        res.json({ 
+            success: true, 
+            message: emailData.scheduledFor ? 
+                'Correo programado exitosamente' : 
+                'Email enviado satisfactoriamente',
+            result 
+        });
     } catch (error) {
         console.error('Error sending email:', error);
         res.status(500).json({ 
@@ -598,3 +607,104 @@ app.get('/campaigns', (req, res) => {
 
 // Middleware de manejo de errores (debe ir después de todas las rutas)
 app.use(errorHandler);
+
+app.post('/send-mass-emails', upload.fields([
+    { name: 'excelFile', maxCount: 1 },
+    { name: 'productImage', maxCount: 1 }
+]), async (req, res) => {
+    try {
+        if (!req.files || !req.files.excelFile) {
+            return res.status(400).json({ success: false, message: 'No se proporcionó el archivo Excel' });
+        }
+
+        let imageUrl = null;
+        if (req.files.productImage) {
+            const imgbbResponse = await imgbbUploader({
+                apiKey: IMGBB_API_KEY,
+                base64string: req.files.productImage[0].buffer.toString('base64')
+            });
+            imageUrl = imgbbResponse.display_url;
+        }
+
+        // Generar ID de campaña usando UUID
+        const campaignId = uuidv4();
+
+        console.log('scheduledFor from request (mass):', req.body.scheduledFor);
+
+        // Crear la campaña
+        await Campaign.create({
+            id: campaignId,
+            name: `Campaña Masiva ${new Date().toLocaleDateString()}`,
+            description: req.body.subject,
+            status: req.body.scheduledFor ? 'paused' : 'active',
+            scheduledFor: req.body.scheduledFor ? new Date(req.body.scheduledFor) : null
+        });
+
+        // Leer el archivo Excel
+        const workbook = xlsx.read(req.files.excelFile[0].buffer);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(worksheet);
+
+        // Validar y formatear el offerLink
+        let offerLink = req.body.offerLink || '#';
+        if (offerLink !== '#' && !offerLink.startsWith('http://') && !offerLink.startsWith('https://')) {
+            offerLink = `https://${offerLink}`;
+        }
+
+        const { Email } = require('./models/Email');
+        const results = [];
+        const errors = [];
+
+        // Procesar cada correo
+        for (const row of data) {
+            try {
+                const emailData = {
+                    to: row.email,
+                    subject: req.body.subject,
+                    companyName: 'HAMSE',
+                    customerName: row.name || 'Cliente',
+                    offerTitle: req.body.offerTitle,
+                    offerDescription: req.body.offerDescription,
+                    offerPrice: req.body.offerPrice,
+                    offerLink: offerLink,
+                    unsubscribeLink: '#',
+                    productImage: imageUrl,
+                    campaignId: campaignId
+                };
+
+                // Si hay fecha programada, agregarla
+                if (req.body.scheduledFor) {
+                    emailData.scheduledFor = new Date(req.body.scheduledFor);
+                }
+
+                // Crear el correo en la base de datos
+                const createdEmail = await Email.create(emailData);
+                
+                // Enviar el correo (o programarlo si tiene fecha programada)
+                await sendHTMLEmail(createdEmail.toJSON());
+
+                results.push({ email: row.email, status: 'success' });
+            } catch (error) {
+                console.error(`Error processing email ${row.email}:`, error);
+                errors.push({ email: row.email, error: error.message });
+            }
+        }
+
+        res.json({
+            success: true,
+            message: req.body.scheduledFor ? 
+                'Correos programados exitosamente' : 
+                'Correos enviados satisfactoriamente',
+            results,
+            errors
+        });
+    } catch (error) {
+        console.error('Error processing mass emails:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al procesar los correos',
+            error: error.message
+        });
+    }
+});

@@ -194,6 +194,22 @@
                                 <input type="number" class="form-control" name="offerPrice" step="0.01">
                             </div>
                             <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="scheduleMassEmail" name="scheduleMassEmail">
+                                    <label class="form-check-label" for="scheduleMassEmail">
+                                        Programar envío
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="mb-3 mass-schedule-fields" style="display: none;">
+                                <label for="massScheduledDate" class="form-label">Fecha de envío:</label>
+                                <input type="date" class="form-control" id="massScheduledDate" name="scheduledDate">
+                            </div>
+                            <div class="mb-3 mass-schedule-fields" style="display: none;">
+                                <label for="massScheduledTime" class="form-label">Hora de envío:</label>
+                                <input type="time" class="form-control" id="massScheduledTime" name="scheduledTime">
+                            </div>
+                            <div class="mb-3">
                                 <label for="productImageMassive" class="form-label"><i class="fas fa-image"></i> Imagen del Producto:</label>
                                 <input type="file" class="form-control" name="productImage" id="productImageMassive" accept="image/*">
                                 <div id="imagePreviewMassive" class="image-preview mt-2"></div>
@@ -260,6 +276,22 @@
                                 <label for="campaignIdManual" class="form-label"><i class="fas fa-tags"></i> ID de Campaña:</label>
                                 <input type="text" class="form-control" name="campaignId" id="campaignIdManual" placeholder="Ej: LanzamientoProducto_Q1" readonly>
                             </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="scheduleEmail" name="scheduleEmail">
+                                    <label class="form-check-label" for="scheduleEmail">
+                                        Programar envío
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="mb-3 schedule-fields" style="display: none;">
+                                <label for="scheduledDate" class="form-label">Fecha de envío:</label>
+                                <input type="date" class="form-control" id="scheduledDate" name="scheduledDate">
+                            </div>
+                            <div class="mb-3 schedule-fields" style="display: none;">
+                                <label for="scheduledTime" class="form-label">Hora de envío:</label>
+                                <input type="time" class="form-control" id="scheduledTime" name="scheduledTime">
+                            </div>
                             <div class="d-flex justify-content-start">
                                 <button type="button" onclick="previewEmail()" class="btn btn-secondary me-2">
                                     <i class="fas fa-eye"></i> Vista Previa
@@ -314,6 +346,25 @@
         </div>
     </div>
 
+    <!-- Preview Modal -->
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="previewModalLabel">Vista Previa del Correo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <iframe id="previewFrame" style="width: 100%; height: 600px; border: none;"></iframe>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
     <div id="successModal" class="modal fade" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -394,35 +445,64 @@
             loadQueueDisplay(); // Load queue when page loads
         });
 
+        // Mostrar/ocultar campos de programación para envío masivo
+        document.getElementById('scheduleMassEmail').addEventListener('change', function() {
+            const scheduleFields = document.querySelectorAll('.mass-schedule-fields');
+            scheduleFields.forEach(field => {
+                field.style.display = this.checked ? 'block' : 'none';
+            });
+        });
+
+        // Mostrar/ocultar campos de programación
+        document.getElementById('scheduleEmail').addEventListener('change', function() {
+            console.log('Checkbox de programación cambiado a:', this.checked);
+            const scheduleFields = document.querySelectorAll('.schedule-fields');
+            console.log('Campos de programación seleccionados:', scheduleFields);
+            scheduleFields.forEach(field => {
+                field.style.display = this.checked ? 'block' : 'none';
+            });
+        });
+
         // Handle mass email form submission
-        document.getElementById('massEmailForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
+        document.getElementById('massEmailForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
             const formData = new FormData(this);
+            
+            // Si está programado, combinar fecha y hora
+            if (formData.get('scheduleMassEmail') === 'on') {
+                const date = formData.get('scheduledDate');
+                const time = formData.get('scheduledTime');
+                if (date && time) {
+                    const scheduledFor = new Date(`${date}T${time}`);
+                    formData.set('scheduledFor', scheduledFor.toISOString());
+                }
+            }
 
             try {
-                const response = await axios.post('/upload', formData, {
+                const response = await axios.post('/send-mass-emails', formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data'
                     }
                 });
+                const data = response.data;
 
-                if (response.data.success) {
-                    document.querySelector('#uploadSuccessModal .email-count').textContent = `Total de correos: ${response.data.totalEmails}`;
-                    const uploadSuccessModal = new bootstrap.Modal(document.getElementById('uploadSuccessModal'));
-                    uploadSuccessModal.show();
-                    // Limpiar el formulario después del éxito
+                if (data.success) {
+                    document.getElementById('successMessage').textContent = 
+                        formData.get('scheduleMassEmail') === 'on' ? 
+                        'Correos programados exitosamente' : 
+                        'Correos enviados satisfactoriamente';
+                    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                    successModal.show();
                     this.reset();
-                    document.getElementById('imagePreviewMassive').innerHTML = '';
-                    document.getElementById('imagePreviewMassive').style.display = 'none';
-                    // Regenerar el ID de campaña
-                    document.getElementById('campaignIdMassive').value = generateCampaignId();
-                    await loadQueueDisplay();
+                    document.querySelectorAll('.mass-schedule-fields').forEach(field => {
+                        field.style.display = 'none';
+                    });
                 } else {
-                    alert('Error al cargar el archivo: ' + response.data.message);
+                    alert(data.message || 'Error al enviar los correos');
                 }
             } catch (error) {
-                console.error('Error al procesar el archivo Excel:', error);
-                alert('Error al procesar el archivo Excel: ' + (error.response?.data?.message || error.message));
+                console.error('Error:', error);
+                alert('Error al enviar los correos: ' + (error.response?.data?.message || error.message));
             }
         });
 
@@ -430,6 +510,16 @@
         document.getElementById('emailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const formData = new FormData(this);
+            
+            // Si está programado, combinar fecha y hora
+            if (formData.get('scheduleEmail') === 'on') {
+                const date = formData.get('scheduledDate');
+                const time = formData.get('scheduledTime');
+                if (date && time) {
+                    const scheduledFor = new Date(`${date}T${time}`);
+                    formData.set('scheduledFor', scheduledFor.toISOString());
+                }
+            }
         
             try {
                 const response = await axios.post('/send-emails', formData, {
@@ -440,12 +530,18 @@
                 const data = response.data;
         
                 if (data.success) {
-                    document.getElementById('successMessage').textContent = 'Email enviado satisfactoriamente';
+                    document.getElementById('successMessage').textContent = 
+                        formData.get('scheduleEmail') === 'on' ? 
+                        'Correo programado exitosamente' : 
+                        'Email enviado satisfactoriamente';
                     const successModal = new bootstrap.Modal(document.getElementById('successModal'));
                     successModal.show();
                     this.reset();
                     document.getElementById('imagePreviewManual').innerHTML = '';
                     document.getElementById('imagePreviewManual').style.display = 'none';
+                    document.querySelectorAll('.schedule-fields').forEach(field => {
+                        field.style.display = 'none';
+                    });
                     // Regenerar el ID de campaña
                     document.getElementById('campaignIdManual').value = generateCampaignId();
                 } else {
@@ -470,6 +566,12 @@
                 });
                 
                 const previewFrame = document.getElementById('previewFrame');
+                console.log('Elemento previewFrame:', previewFrame);
+                if (!previewFrame) {
+                    console.error('Error: previewFrame element not found.');
+                    alert('Error al generar la vista previa: Elemento de vista previa no encontrado.');
+                    return;
+                }
                 previewFrame.srcdoc = response.data; // Set the HTML content directly
                 const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
                 previewModal.show();
