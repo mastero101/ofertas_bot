@@ -9,12 +9,22 @@ const ZEPTO_FROM_EMAIL = process.env.ZEPTO_FROM_EMAIL;
 async function sendHTMLEmail(emailData) {
     try {
         console.log('=== INICIO DE sendHTMLEmail ===');
-        console.log('Datos del correo recibidos:', {
-            id: emailData.id,
-            to: emailData.to,
-            subject: emailData.subject,
-            scheduledFor: emailData.scheduledFor
-        });
+        
+        // Validar variables de entorno requeridas
+        const requiredEnvVars = {
+            ZEPTO_API_KEY: process.env.ZEPTO_API_KEY,
+            BOUNCE_EMAIL: process.env.BOUNCE_EMAIL,
+            FROM_EMAIL: process.env.FROM_EMAIL,
+            BASE_URL: process.env.BASE_URL
+        };
+
+        const missingVars = Object.entries(requiredEnvVars)
+            .filter(([_, value]) => !value)
+            .map(([key]) => key);
+
+        if (missingVars.length > 0) {
+            throw new Error(`Faltan variables de entorno requeridas: ${missingVars.join(', ')}`);
+        }
 
         // Si el correo está programado
         if (emailData.scheduledFor) {
@@ -26,17 +36,8 @@ async function sendHTMLEmail(emailData) {
                 },
                 { where: { id: emailData.id } }
             );
-            console.log('Estado del correo actualizado a "scheduled"');
             return { message: 'Email scheduled successfully', emailId: emailData.id, status: 'scheduled' };
         }
-
-        console.log('Preparando envío inmediato del correo...');
-
-        // Verificar variables de entorno
-        console.log('Verificando variables de entorno:');
-        console.log('ZEPTO_API_KEY existe:', !!process.env.ZEPTO_API_KEY);
-        console.log('BOUNCE_EMAIL existe:', !!process.env.BOUNCE_EMAIL);
-        console.log('FROM_EMAIL existe:', !!process.env.FROM_EMAIL);
 
         // Configuración para ZeptoMail
         const config = {
@@ -60,34 +61,18 @@ async function sendHTMLEmail(emailData) {
                 }],
                 subject: emailData.subject,
                 textbody: emailData.offerDescription,
-                htmlbody: await generateEmailHTML(emailData)
+                htmlbody: await generateEmailHTML({
+                    ...emailData,
+                    baseUrl: process.env.BASE_URL // Pasar la URL base a la plantilla
+                })
             }
         };
-
-        console.log('Configuración de la solicitud preparada:', {
-            url: config.url,
-            method: config.method,
-            headers: {
-                ...config.headers,
-                'Authorization': 'Zoho-enczapikey [OCULTO]' // Ocultamos la API key por seguridad
-            }
-        });
-
-        console.log('Datos del correo a enviar:', {
-            to: config.data.to,
-            subject: config.data.subject,
-            from: config.data.from,
-            htmlbody_length: config.data.htmlbody?.length || 0
-        });
 
         console.log('Enviando solicitud a ZeptoMail...');
         const response = await axios(config);
         const responseData = response.data;
 
-        console.log('Respuesta de ZeptoMail recibida:', responseData);
-
         if (responseData.request_id) {
-            console.log('Actualizando estado del correo con request_id:', responseData.request_id);
             await Email.update(
                 {
                     zeptoRequestId: responseData.request_id,
@@ -96,10 +81,8 @@ async function sendHTMLEmail(emailData) {
                 },
                 { where: { id: emailData.id } }
             );
-            console.log('Estado del correo actualizado a "sent"');
         }
 
-        console.log('=== FIN DE sendHTMLEmail - ÉXITO ===');
         return responseData;
     } catch (error) {
         console.error('=== ERROR EN sendHTMLEmail ===');
@@ -111,14 +94,12 @@ async function sendHTMLEmail(emailData) {
         });
 
         if (emailData.id) {
-            console.log('Actualizando estado del correo a "failed"');
             await Email.update(
                 { status: 'failed' },
                 { where: { id: emailData.id } }
             );
         }
 
-        console.error('=== FIN DE sendHTMLEmail - ERROR ===');
         throw error;
     }
 }
