@@ -40,10 +40,13 @@ async function sendHTMLEmail(emailData) {
         }
 
         // Preparar el HTML del correo
+        console.log('sendHTMLEmail: Llamando a generateEmailHTML con emailData:', emailData.id);
         const htmlContent = await generateEmailHTML({
             ...emailData,
             baseUrl: process.env.BASE_URL
         });
+        console.log('sendHTMLEmail: HTML Content recibido de generateEmailHTML (primeros 500 caracteres):', htmlContent ? htmlContent.substring(0, 500) : 'HTML vacio');
+        console.log('sendHTMLEmail: Longitud total del HTML Content:', htmlContent ? htmlContent.length : 0);
 
         // Configuración para ZeptoMail
         const emailPayload = {
@@ -65,7 +68,9 @@ async function sendHTMLEmail(emailData) {
             track_opens: true
         };
 
-        console.log('Payload del correo:', JSON.stringify(emailPayload, null, 2));
+        console.log('Payload del correo (htmlbody primeros 500 caracteres):', emailPayload.htmlbody ? emailPayload.htmlbody.substring(0, 500) : 'HTML vacio en payload');
+        console.log('Payload del correo (longitud total htmlbody):', emailPayload.htmlbody ? emailPayload.htmlbody.length : 0);
+        console.log('Payload completo (sin htmlbody, por brevedad):', JSON.stringify({ ...emailPayload, htmlbody: '[OMITIDO POR LONGITUD]' }, null, 2));
 
         const config = {
             method: 'post',
@@ -160,6 +165,8 @@ async function generateEmailHTML(emailData) {
         }
     );
     
+    console.log('generateEmailHTML: HTML generado (primeros 500 caracteres):', htmlContent ? htmlContent.substring(0, 500) : 'HTML vacio');
+    console.log('generateEmailHTML: Longitud total del HTML generado:', htmlContent ? htmlContent.length : 0);
     console.log('generateEmailHTML: HTML generated successfully');
     return htmlContent;
 }
