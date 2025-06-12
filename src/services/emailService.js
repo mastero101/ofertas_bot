@@ -8,6 +8,8 @@ const ZEPTO_FROM_EMAIL = process.env.ZEPTO_FROM_EMAIL;
 
 async function sendHTMLEmail(emailData) {
     try {
+        console.log('sendHTMLEmail received emailData:', emailData);
+        console.log('emailData.scheduledFor:', emailData.scheduledFor);
         // Si el correo está programado, solo actualizar el estado
         if (emailData.scheduledFor) {
             await Email.update(
