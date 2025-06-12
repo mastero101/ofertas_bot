@@ -50,7 +50,6 @@ async function sendHTMLEmail(emailData) {
 
         // Preparar el payload del correo
         const emailPayload = {
-            bounce_address: "bounce.zeptomail.com",
             from: {
                 address: "noreply@ferche.app",
                 name: emailData.customerName || "HAMSE"
