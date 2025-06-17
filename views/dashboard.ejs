@@ -44,7 +44,7 @@
                 <!-- Stats Cards -->
                 <div class="row mb-4">
                     <div class="col-md-3">
-                        <div class="card">
+                        <div class="card stats-card">
                             <div class="card-body">
                                 <h5 class="card-title">Total Enviados</h5>
                                 <h2 class="card-text" id="totalSent">0</h2>
@@ -52,7 +52,7 @@
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card">
+                        <div class="card stats-card">
                             <div class="card-body">
                                 <h5 class="card-title">Abiertos</h5>
                                 <h2 class="card-text" id="totalOpened">0</h2>
@@ -60,7 +60,7 @@
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card">
+                        <div class="card stats-card">
                             <div class="card-body">
                                 <h5 class="card-title">Clics</h5>
                                 <h2 class="card-text" id="totalClicks">0</h2>
@@ -68,7 +68,7 @@
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card">
+                        <div class="card stats-card">
                             <div class="card-body">
                                 <h5 class="card-title">Fallidos</h5>
                                 <h2 class="card-text" id="totalFailed">0</h2>
@@ -82,8 +82,29 @@
                     <div class="col-12">
                         <div class="card">
                             <div class="card-body">
-                                <h5 class="card-title">Actividad por Día</h5>
-                                <canvas id="activityChart"></canvas>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="card-title mb-0">Actividad por Día</h5>
+                                    <div class="date-filter-wrapper">
+                                        <div class="d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-center">
+                                            <div class="d-flex flex-column flex-sm-row gap-2 align-items-start align-items-sm-center">
+                                                <input type="date" id="startDate" class="form-control form-control-sm date-input" placeholder="Fecha inicio">
+                                                <span class="date-separator">a</span>
+                                                <input type="date" id="endDate" class="form-control form-control-sm date-input" placeholder="Fecha fin">
+                                            </div>
+                                            <div class="d-flex gap-2 mt-2 mt-sm-0">
+                                                <button onclick="loadDailyStats()" class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-search"></i> <span class="btn-text">Filtrar</span>
+                                                </button>
+                                                <button onclick="resetDateFilter()" class="btn btn-outline-secondary btn-sm">
+                                                    <i class="fas fa-undo"></i> <span class="btn-text">Resetear</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="activityChart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -96,12 +117,12 @@
                             <div class="card-body">
                                 <h5 class="card-title">Correos Programados</h5>
                                 <div class="table-responsive">
-                                    <table class="table" id="scheduledEmailsTable">
+                                    <table class="table table-hover" id="scheduledEmailsTable">
                                         <thead>
                                             <tr>
-                                                <th>Destinatario</th>
+                                                <th class="d-none d-md-table-cell">Destinatario</th>
                                                 <th>Asunto</th>
-                                                <th>Programado para</th>
+                                                <th class="d-none d-md-table-cell">Programado para</th>
                                                 <th>Acciones</th>
                                             </tr>
                                         </thead>
@@ -135,10 +156,30 @@
             }
         }
 
+        // Función para destruir el gráfico de manera segura
+        function destroyChart() {
+            if (window.activityChart && typeof window.activityChart.destroy === 'function') {
+                window.activityChart.destroy();
+                window.activityChart = null;
+            }
+        }
+
         // Función para cargar las estadísticas diarias
         async function loadDailyStats() {
             try {
-                const response = await fetch('/api/statistics/daily?days=7');
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                
+                let url = '/api/statistics/daily?days=7';
+                if (startDate && endDate) {
+                    url = `/api/statistics/daily?startDate=${startDate}&endDate=${endDate}`;
+                } else if (startDate) {
+                    url = `/api/statistics/daily?startDate=${startDate}`;
+                } else if (endDate) {
+                    url = `/api/statistics/daily?endDate=${endDate}`;
+                }
+
+                const response = await fetch(url);
                 const data = await response.json();
                 if (data.success) {
                     const dates = data.data.map(item => item.date);
@@ -146,8 +187,16 @@
                     const opened = data.data.map(item => item.opened);
                     const failed = data.data.map(item => item.failed);
 
-                    const ctx = document.getElementById('activityChart').getContext('2d');
-                    new Chart(ctx, {
+                    // Destruir el gráfico existente si existe
+                    destroyChart();
+
+                    const ctx = document.getElementById('activityChart');
+                    if (!ctx) {
+                        console.error('Canvas element not found');
+                        return;
+                    }
+
+                    window.activityChart = new Chart(ctx, {
                         type: 'line',
                         data: {
                             labels: dates,
@@ -156,41 +205,82 @@
                                     label: 'Enviados',
                                     data: sent,
                                     borderColor: 'rgb(75, 192, 192)',
-                                    tension: 0.1
+                                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                                    tension: 0.1,
+                                    fill: true
                                 },
                                 {
                                     label: 'Abiertos',
                                     data: opened,
                                     borderColor: 'rgb(255, 99, 132)',
-                                    tension: 0.1
+                                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                                    tension: 0.1,
+                                    fill: true
                                 },
                                 {
                                     label: 'Fallidos',
                                     data: failed,
                                     borderColor: 'rgb(255, 159, 64)',
-                                    tension: 0.1
+                                    backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                                    tension: 0.1,
+                                    fill: true
                                 },
                                 {
                                     label: 'Clics',
                                     data: data.data.map(item => item.clicks),
                                     borderColor: 'rgb(54, 162, 235)',
-                                    tension: 0.1
+                                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                                    tension: 0.1,
+                                    fill: true
                                 }
                             ]
                         },
                         options: {
                             responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false
+                                }
+                            },
                             scales: {
                                 y: {
-                                    beginAtZero: true
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Cantidad'
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Fecha'
+                                    }
                                 }
                             }
                         }
                     });
+                } else {
+                    console.error('Error in API response:', data.error || 'Unknown error');
                 }
             } catch (error) {
                 console.error('Error loading daily stats:', error);
             }
+        }
+
+        // Función para resetear el filtro de fechas
+        function resetDateFilter() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            loadDailyStats();
         }
 
         // Función para cargar los correos programados
@@ -204,12 +294,22 @@
                     
                     data.data.forEach(email => {
                         const tr = document.createElement('tr');
+                        const isMobile = window.innerWidth < 768;
+                        
                         tr.innerHTML = `
-                            <td>${email.to}</td>
-                            <td>${email.subject}</td>
-                            <td>${new Date(email.scheduledFor).toLocaleString()}</td>
+                            <td class="d-none d-md-table-cell">${email.to}</td>
                             <td>
-                                <button onclick="cancelScheduledEmail('${email.id}')" class="btn btn-sm btn-danger">Cancelar</button>
+                                <div class="email-info">
+                                    <div class="email-subject">${email.subject}</div>
+                                    ${isMobile ? `<small class="text-muted d-block">${email.to}</small>` : ''}
+                                </div>
+                            </td>
+                            <td class="d-none d-md-table-cell">${new Date(email.scheduledFor).toLocaleString()}</td>
+                            <td>
+                                <button onclick="cancelScheduledEmail('${email.id}')" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-times"></i>
+                                    <span class="d-none d-sm-inline">Cancelar</span>
+                                </button>
                             </td>
                         `;
                         tbody.appendChild(tr);
@@ -243,8 +343,24 @@
 
         // Cargar datos al cargar la página
         window.addEventListener('load', () => {
-            loadGeneralStats();
-            loadDailyStats();
+            // Inicializar variables globales
+            window.activityChart = null;
+            
+            // Cargar datos con manejo de errores
+            Promise.all([
+                loadGeneralStats().catch(error => console.error('Error loading general stats:', error)),
+                loadDailyStats().catch(error => console.error('Error loading daily stats:', error)),
+                loadScheduledEmails().catch(error => console.error('Error loading scheduled emails:', error))
+            ]).then(() => {
+                console.log('Dashboard loaded successfully');
+            }).catch(error => {
+                console.error('Error loading dashboard:', error);
+            });
+        });
+
+        // Listener para redimensionamiento de ventana
+        window.addEventListener('resize', () => {
+            // Recargar la tabla de correos programados cuando cambie el tamaño de pantalla
             loadScheduledEmails();
         });
     </script>

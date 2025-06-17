@@ -120,6 +120,22 @@ class StatisticsService {
         return email;
     }
 
+    // Cancelar correo programado
+    static async cancelScheduledEmail(emailId) {
+        const email = await Email.findByPk(emailId);
+        
+        if (!email) {
+            throw new Error('Correo no encontrado');
+        }
+
+        if (email.status !== 'scheduled') {
+            throw new Error('Solo se pueden cancelar correos programados');
+        }
+
+        await email.update({ status: 'cancelled' });
+        return { message: 'Correo cancelado exitosamente' };
+    }
+
     // Obtener estadísticas generales
     static async getGeneralStats() {
         const stats = await Email.findAll({
@@ -132,6 +148,83 @@ class StatisticsService {
         });
 
         return stats[0];
+    }
+
+    // Obtener estadísticas diarias por rango de fechas
+    static async getDailyStatsByDateRange(startDate, endDate) {
+        const start = startDate ? new Date(startDate) : new Date();
+        const end = endDate ? new Date(endDate) : new Date();
+        
+        // Ajustar las fechas para incluir todo el día
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+
+        const dailyStats = await Email.findAll({
+            attributes: [
+                [sequelize.fn('date', sequelize.col('createdAt')), 'date'],
+                [sequelize.fn('count', sequelize.col('id')), 'total'],
+                [sequelize.fn('sum', sequelize.literal('CASE WHEN status = \'sent\' THEN 1 ELSE 0 END')), 'sent'],
+                [sequelize.fn('sum', sequelize.literal('CASE WHEN "trackingOpened" = true THEN 1 ELSE 0 END')), 'opened'],
+                [sequelize.fn('sum', sequelize.literal('CASE WHEN status = \'failed\' THEN 1 ELSE 0 END')), 'failed']
+            ],
+            where: {
+                createdAt: {
+                    [Op.between]: [start, end]
+                }
+            },
+            group: [sequelize.fn('date', sequelize.col('createdAt'))],
+            order: [[sequelize.fn('date', sequelize.col('createdAt')), 'ASC']]
+        });
+
+        // Obtener clics por día en el rango
+        const dailyClicks = await EmailClick.findAll({
+            attributes: [
+                [sequelize.fn('date', sequelize.col('clickedAt')), 'date'],
+                [sequelize.fn('count', sequelize.col('id')), 'clicks']
+            ],
+            where: {
+                clickedAt: {
+                    [Op.between]: [start, end]
+                }
+            },
+            group: [sequelize.fn('date', sequelize.col('clickedAt'))],
+            order: [[sequelize.fn('date', sequelize.col('clickedAt')), 'ASC']]
+        });
+
+        // Combinar estadísticas de correos y clics
+        const combinedStats = {};
+        dailyStats.forEach(stat => {
+            const date = stat.get('date');
+            combinedStats[date] = { ...stat.toJSON(), clicks: 0 };
+        });
+
+        dailyClicks.forEach(clickStat => {
+            const date = clickStat.get('date');
+            if (combinedStats[date]) {
+                combinedStats[date].clicks = clickStat.get('clicks');
+            } else {
+                combinedStats[date] = { date, total: 0, sent: 0, opened: 0, failed: 0, clicks: clickStat.get('clicks') };
+            }
+        });
+
+        // Asegurar que todos los días en el rango tengan datos (0 si no hay actividad)
+        const result = [];
+        const currentDate = new Date(start);
+        
+        while (currentDate <= end) {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            result.push(combinedStats[dateStr] || { 
+                date: dateStr, 
+                total: 0, 
+                sent: 0, 
+                opened: 0, 
+                failed: 0, 
+                clicks: 0 
+            });
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        return result;
     }
 }
 

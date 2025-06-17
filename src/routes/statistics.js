@@ -5,8 +5,18 @@ const StatisticsService = require('../services/statisticsService');
 // Obtener estadísticas diarias
 router.get('/daily', async (req, res) => {
     try {
-        const days = parseInt(req.query.days) || 7;
-        const stats = await StatisticsService.getDailyStats(days);
+        const { days, startDate, endDate } = req.query;
+        
+        let stats;
+        if (startDate || endDate) {
+            // Si se proporcionan fechas específicas, usar el rango de fechas
+            stats = await StatisticsService.getDailyStatsByDateRange(startDate, endDate);
+        } else {
+            // Si no hay fechas, usar el parámetro days (por defecto 7)
+            const daysCount = parseInt(days) || 7;
+            stats = await StatisticsService.getDailyStats(daysCount);
+        }
+        
         res.json({ success: true, data: stats });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -38,6 +48,16 @@ router.put('/scheduled/:emailId', async (req, res) => {
     try {
         const email = await StatisticsService.updateScheduledEmail(req.params.emailId, req.body);
         res.json({ success: true, data: email });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Cancelar correo programado
+router.delete('/scheduled/:emailId', async (req, res) => {
+    try {
+        const result = await StatisticsService.cancelScheduledEmail(req.params.emailId);
+        res.json({ success: true, data: result });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
