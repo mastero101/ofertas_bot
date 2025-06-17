@@ -73,4 +73,25 @@ router.get('/general', async (req, res) => {
     }
 });
 
+// Obtener correos por estado
+router.get('/emails', async (req, res) => {
+    try {
+        const { status, limit } = req.query;
+        const emails = await StatisticsService.getEmailsByStatus(status, parseInt(limit) || 50);
+        res.json({ success: true, data: emails });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Obtener estadísticas por estado
+router.get('/status-stats', async (req, res) => {
+    try {
+        const stats = await StatisticsService.getStatsByStatus();
+        res.json({ success: true, data: stats });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router; 

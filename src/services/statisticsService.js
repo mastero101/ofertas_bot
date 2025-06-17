@@ -226,6 +226,40 @@ class StatisticsService {
 
         return result;
     }
+
+    // Obtener correos por estado
+    static async getEmailsByStatus(status, limit = 50) {
+        const whereClause = {};
+        
+        if (status && status !== 'all') {
+            whereClause.status = status;
+        }
+
+        const emails = await Email.findAll({
+            where: whereClause,
+            order: [['createdAt', 'DESC']],
+            limit: limit,
+            attributes: [
+                'id', 'to', 'subject', 'status', 'createdAt', 'sentAt', 
+                'scheduledFor', 'customerName', 'offerTitle', 'trackingOpened'
+            ]
+        });
+
+        return emails;
+    }
+
+    // Obtener estadísticas por estado
+    static async getStatsByStatus() {
+        const stats = await Email.findAll({
+            attributes: [
+                'status',
+                [sequelize.fn('count', sequelize.col('id')), 'count']
+            ],
+            group: ['status']
+        });
+
+        return stats;
+    }
 }
 
 module.exports = StatisticsService; 

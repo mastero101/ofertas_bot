@@ -134,6 +134,50 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Email Status Filter -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="card-title mb-0">Filtrar Correos por Estado</h5>
+                                    <div class="d-flex gap-2">
+                                        <select id="statusFilter" class="form-select form-select-sm" style="min-width: 150px;">
+                                            <option value="all">Todos los estados</option>
+                                            <option value="pending">Pendientes</option>
+                                            <option value="sent">Enviados</option>
+                                            <option value="failed">Fallidos</option>
+                                            <option value="scheduled">Programados</option>
+                                        </select>
+                                        <button onclick="loadEmailsByStatus()" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-filter"></i> <span class="btn-text">Filtrar</span>
+                                        </button>
+                                        <button onclick="resetStatusFilter()" class="btn btn-outline-secondary btn-sm">
+                                            <i class="fas fa-undo"></i> <span class="btn-text">Limpiar</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="emailsTable">
+                                        <thead>
+                                            <tr>
+                                                <th class="d-none d-md-table-cell">Destinatario</th>
+                                                <th>Asunto</th>
+                                                <th class="d-none d-md-table-cell">Estado</th>
+                                                <th class="d-none d-md-table-cell">Fecha</th>
+                                                <th class="d-none d-md-table-cell">Abierto</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -341,6 +385,120 @@
             }
         }
 
+        // Función para cargar correos por estado
+        async function loadEmailsByStatus() {
+            try {
+                const status = document.getElementById('statusFilter').value;
+                const response = await fetch(`/api/statistics/emails?status=${status}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tbody = document.querySelector('#emailsTable tbody');
+                    tbody.innerHTML = '';
+                    
+                    if (data.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No se encontraron correos con el estado seleccionado</td></tr>';
+                        return;
+                    }
+                    
+                    data.data.forEach(email => {
+                        const tr = document.createElement('tr');
+                        const isMobile = window.innerWidth < 768;
+                        
+                        // Determinar el badge del estado
+                        let statusBadge = '';
+                        switch(email.status) {
+                            case 'sent':
+                                statusBadge = '<span class="badge bg-success">Enviado</span>';
+                                break;
+                            case 'pending':
+                                statusBadge = '<span class="badge bg-warning text-dark">Pendiente</span>';
+                                break;
+                            case 'failed':
+                                statusBadge = '<span class="badge bg-danger">Fallido</span>';
+                                break;
+                            case 'scheduled':
+                                statusBadge = '<span class="badge bg-info">Programado</span>';
+                                break;
+                            default:
+                                statusBadge = `<span class="badge bg-secondary">${email.status}</span>`;
+                        }
+                        
+                        // Formatear la fecha
+                        let displayDate = '';
+                        if (email.sentAt) {
+                            displayDate = new Date(email.sentAt).toLocaleString();
+                        } else if (email.scheduledFor) {
+                            displayDate = new Date(email.scheduledFor).toLocaleString();
+                        } else {
+                            displayDate = new Date(email.createdAt).toLocaleString();
+                        }
+                        
+                        // Icono de apertura
+                        const openedIcon = email.trackingOpened ? 
+                            '<i class="fas fa-eye text-success" title="Correo abierto"></i>' : 
+                            '<i class="fas fa-eye-slash text-muted" title="Correo no abierto"></i>';
+                        
+                        tr.innerHTML = `
+                            <td class="d-none d-md-table-cell">
+                                <div class="text-truncate" style="max-width: 200px;" title="${email.to}">
+                                    ${email.to}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="email-info">
+                                    <div class="email-subject text-truncate" style="max-width: 300px;" title="${email.subject}">
+                                        ${email.subject}
+                                    </div>
+                                    ${isMobile ? `<small class="text-muted d-block">${email.to}</small>` : ''}
+                                </div>
+                            </td>
+                            <td class="d-none d-md-table-cell">
+                                ${statusBadge}
+                            </td>
+                            <td class="d-none d-md-table-cell">
+                                <small class="text-muted">${displayDate}</small>
+                            </td>
+                            <td class="d-none d-md-table-cell text-center">
+                                ${openedIcon}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button onclick="viewEmailDetails('${email.id}')" class="btn btn-outline-primary btn-sm" title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
+                                        <span class="d-none d-sm-inline">Ver</span>
+                                    </button>
+                                    ${email.status === 'scheduled' ? 
+                                        `<button onclick="cancelScheduledEmail('${email.id}')" class="btn btn-outline-danger btn-sm" title="Cancelar">
+                                            <i class="fas fa-times"></i>
+                                            <span class="d-none d-sm-inline">Cancelar</span>
+                                        </button>` : ''
+                                    }
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading emails by status:', error);
+                const tbody = document.querySelector('#emailsTable tbody');
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Error al cargar los correos</td></tr>';
+            }
+        }
+
+        // Función para resetear el filtro de estado
+        function resetStatusFilter() {
+            document.getElementById('statusFilter').value = 'all';
+            loadEmailsByStatus();
+        }
+
+        // Función para ver detalles del correo
+        function viewEmailDetails(emailId) {
+            // Por ahora solo mostramos un alert, pero se puede expandir para mostrar un modal
+            alert(`Detalles del correo ID: ${emailId}\n\nEsta funcionalidad se puede expandir para mostrar más información del correo.`);
+        }
+
         // Cargar datos al cargar la página
         window.addEventListener('load', () => {
             // Inicializar variables globales
@@ -350,7 +508,8 @@
             Promise.all([
                 loadGeneralStats().catch(error => console.error('Error loading general stats:', error)),
                 loadDailyStats().catch(error => console.error('Error loading daily stats:', error)),
-                loadScheduledEmails().catch(error => console.error('Error loading scheduled emails:', error))
+                loadScheduledEmails().catch(error => console.error('Error loading scheduled emails:', error)),
+                loadEmailsByStatus().catch(error => console.error('Error loading emails by status:', error))
             ]).then(() => {
                 console.log('Dashboard loaded successfully');
             }).catch(error => {
@@ -360,8 +519,9 @@
 
         // Listener para redimensionamiento de ventana
         window.addEventListener('resize', () => {
-            // Recargar la tabla de correos programados cuando cambie el tamaño de pantalla
+            // Recargar las tablas cuando cambie el tamaño de pantalla
             loadScheduledEmails();
+            loadEmailsByStatus();
         });
     </script>
 </body>
