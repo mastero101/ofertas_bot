@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Campaign = require('../models/Campaign');
-const { Email } = require('../models/Email');
-const EmailClick = require('../models/EmailClick');
+const { Email, EmailClick, Campaign } = require('../models');
 const { sendHTMLEmail } = require('../services/emailService');
 const { sequelize } = require('../config/database');
 
@@ -19,13 +17,20 @@ router.get('/', async (req, res) => {
             const openedEmails = await Email.count({ where: { campaignId: campaign.id, trackingOpened: true } });
             const failedEmails = await Email.count({ where: { campaignId: campaign.id, status: 'failed' } });
             
-            const clickedEmails = await EmailClick.count({
-                include: [{
-                    model: Email,
-                    where: { campaignId: campaign.id },
-                    attributes: []
-                }]
-            });
+            // Contar clics - temporalmente establecido en 0 hasta que se solucione el problema de la tabla
+            let clickedEmails = 0;
+            try {
+                clickedEmails = await EmailClick.count({
+                    include: [{
+                        model: Email,
+                        where: { campaignId: campaign.id },
+                        attributes: []
+                    }]
+                });
+            } catch (error) {
+                console.log('Error al contar clics (tabla EmailClicks puede no existir):', error.message);
+                clickedEmails = 0;
+            }
 
             return {
                 ...campaign.toJSON(),

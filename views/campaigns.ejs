@@ -125,15 +125,15 @@
                 </div>
                 <div class="modal-body">
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover">
+                        <table class="table table-striped table-hover" id="campaignEmailsTable">
                             <thead>
                                 <tr>
-                                    <th>Destinatario</th>
+                                    <th class="d-none d-lg-table-cell">Destinatario</th>
                                     <th>Asunto</th>
-                                    <th>Estado</th>
-                                    <th>Enviado</th>
-                                    <th>Abierto</th>
-                                    <th>Acciones</th>
+                                    <th class="d-none d-md-table-cell">Estado</th>
+                                    <th class="d-none d-lg-table-cell">Enviado</th>
+                                    <th class="d-none d-md-table-cell">Abierto</th>
+                                    <th class="text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="emailsTableBody">
@@ -148,7 +148,7 @@
 
     <!-- Modal para editar programación -->
     <div class="modal fade" id="scheduleModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Programar Campaña</h5>
@@ -186,27 +186,109 @@
                 const emails = await response.json();
                 
                 const tbody = document.getElementById('emailsTableBody');
-                tbody.innerHTML = emails.map(email => `
-                    <tr>
-                        <td>${email.to}</td>
-                        <td>${email.subject}</td>
-                        <td><span class="badge ${email.status === 'sent' ? 'bg-success' : email.status === 'scheduled' ? 'bg-info' : email.status === 'pending' ? 'bg-warning text-dark' : 'bg-danger'}">${email.status}</span></td>
-                        <td>${email.scheduledFor ? new Date(email.scheduledFor).toLocaleString() : '-'}</td>
-                        <td>${email.sentAt ? new Date(email.sentAt).toLocaleString() : '-'}</td>
-                        <td>${email.trackingOpened ? 'Sí' : 'No'}</td>
-                        <td>
-                            <button onclick="resendEmail('${email.id}')" class="btn btn-sm btn-info">
-                                <i class="fas fa-redo"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
+                
+                if (emails.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="empty-state">
+                                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                    <h6 class="text-muted">No hay correos</h6>
+                                    <p class="text-muted small">Esta campaña no tiene correos asociados</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = emails.map(email => {
+                        // Determinar el badge del estado
+                        let statusBadge = '';
+                        switch(email.status) {
+                            case 'sent':
+                                statusBadge = '<span class="badge bg-success">Enviado</span>';
+                                break;
+                            case 'pending':
+                                statusBadge = '<span class="badge bg-warning text-dark">Pendiente</span>';
+                                break;
+                            case 'failed':
+                                statusBadge = '<span class="badge bg-danger">Fallido</span>';
+                                break;
+                            case 'scheduled':
+                                statusBadge = '<span class="badge bg-info">Programado</span>';
+                                break;
+                            default:
+                                statusBadge = `<span class="badge bg-secondary">${email.status}</span>`;
+                        }
+                        
+                        // Formatear fechas
+                        const sentDate = email.sentAt ? new Date(email.sentAt).toLocaleString() : '-';
+                        const scheduledDate = email.scheduledFor ? new Date(email.scheduledFor).toLocaleString() : '-';
+                        
+                        // Icono de apertura
+                        const openedIcon = email.trackingOpened ? 
+                            '<i class="fas fa-eye text-success" title="Correo abierto"></i>' : 
+                            '<i class="fas fa-eye-slash text-muted" title="Correo no abierto"></i>';
+                        
+                        return `
+                            <tr>
+                                <td class="d-none d-lg-table-cell">
+                                    <div class="text-truncate" style="max-width: 200px;" title="${email.to}">
+                                        ${email.to}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="email-info">
+                                        <div class="email-subject text-truncate" style="max-width: 300px;" title="${email.subject}">
+                                            ${email.subject}
+                                        </div>
+                                        <div class="email-mobile-details d-block d-lg-none">
+                                            <small class="text-muted d-block">${email.to}</small>
+                                            <small class="text-muted d-block">Enviado: ${sentDate}</small>
+                                            <div class="mt-1">
+                                                ${statusBadge}
+                                                <span class="ms-2">${openedIcon}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    ${statusBadge}
+                                </td>
+                                <td class="d-none d-lg-table-cell">
+                                    <small class="text-muted">${sentDate}</small>
+                                </td>
+                                <td class="d-none d-md-table-cell text-center">
+                                    ${openedIcon}
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button onclick="resendEmail('${email.id}')" class="btn btn-outline-info btn-sm" title="Reenviar">
+                                            <i class="fas fa-redo"></i>
+                                            <span class="d-none d-sm-inline">Reenviar</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
 
                 const emailsModal = new bootstrap.Modal(document.getElementById('emailsModal'));
                 emailsModal.show();
             } catch (error) {
                 console.error('Error al cargar los correos:', error);
-                alert('Error al cargar los correos de la campaña');
+                const tbody = document.getElementById('emailsTableBody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <div class="empty-state">
+                                <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                                <h6 class="text-danger">Error al cargar los correos</h6>
+                                <p class="text-muted small">Intenta de nuevo más tarde</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
             }
         }
 
@@ -309,20 +391,26 @@
         }
 
         async function resendEmail(emailId) {
-            try {
-                const response = await fetch(`/api/campaigns/emails/${emailId}/resend`, { method: 'POST' });
-                if (response.ok) {
-                    alert('Correo reenviado exitosamente');
-                    // Recargar los correos de la campaña actual en el modal
-                    if (currentCampaignId) {
-                        viewCampaignEmails(currentCampaignId);
+            if (confirm('¿Está seguro que desea reenviar este correo?')) {
+                try {
+                    const response = await fetch(`/api/campaigns/emails/${emailId}/resend`, {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('Correo reenviado exitosamente');
+                        // Recargar los correos de la campaña actual
+                        if (currentCampaignId) {
+                            viewCampaignEmails(currentCampaignId);
+                        }
+                    } else {
+                        alert('Error al reenviar el correo: ' + data.message);
                     }
-                } else {
+                } catch (error) {
+                    console.error('Error:', error);
                     alert('Error al reenviar el correo');
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al reenviar el correo');
             }
         }
 

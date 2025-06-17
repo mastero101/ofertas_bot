@@ -1,6 +1,6 @@
 const ejs = require('ejs');
 const path = require('path');
-const { Email } = require('../models/Email');
+const { Email } = require('../models');
 const axios = require('axios');
 
 const ZEPTO_API_KEY = process.env.ZEPTO_API_KEY;

@@ -101,6 +101,7 @@ const EmailClick = sequelize.define('EmailClick', {
     },
     emailId: {
         type: DataTypes.UUID,
+        field: 'emailId',
         references: {
             model: Email,
             key: 'id'
@@ -114,6 +115,9 @@ const EmailClick = sequelize.define('EmailClick', {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
     }
+}, {
+    timestamps: true,
+    tableName: 'EmailClicks'
 });
 
 // Establecer la relación entre Email y EmailClick

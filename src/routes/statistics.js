@@ -94,4 +94,24 @@ router.get('/status-stats', async (req, res) => {
     }
 });
 
+// Obtener detalles de un correo específico
+router.get('/emails/:emailId', async (req, res) => {
+    try {
+        const email = await StatisticsService.getEmailDetails(req.params.emailId);
+        res.json({ success: true, data: email });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Renderizar HTML del correo
+router.get('/emails/:emailId/preview', async (req, res) => {
+    try {
+        const html = await StatisticsService.renderEmailHTML(req.params.emailId);
+        res.send(html);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router; 

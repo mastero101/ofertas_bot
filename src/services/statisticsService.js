@@ -1,5 +1,4 @@
-const { Email, EmailClick } = require('../models/Email');
-const Campaign = require('../models/Campaign');
+const { Email, EmailClick, Campaign } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('sequelize');
 
@@ -27,19 +26,25 @@ class StatisticsService {
         });
 
         // Obtener clics por día
-        const dailyClicks = await EmailClick.findAll({
-            attributes: [
-                [sequelize.fn('date', sequelize.col('clickedAt')), 'date'],
-                [sequelize.fn('count', sequelize.col('id')), 'clicks']
-            ],
-            where: {
-                clickedAt: {
-                    [Op.gte]: startDate
-                }
-            },
-            group: [sequelize.fn('date', sequelize.col('clickedAt'))],
-            order: [[sequelize.fn('date', sequelize.col('clickedAt')), 'ASC']]
-        });
+        let dailyClicks = [];
+        try {
+            dailyClicks = await EmailClick.findAll({
+                attributes: [
+                    [sequelize.fn('date', sequelize.col('clickedAt')), 'date'],
+                    [sequelize.fn('count', sequelize.col('id')), 'clicks']
+                ],
+                where: {
+                    clickedAt: {
+                        [Op.gte]: startDate
+                    }
+                },
+                group: [sequelize.fn('date', sequelize.col('clickedAt'))],
+                order: [[sequelize.fn('date', sequelize.col('clickedAt')), 'ASC']]
+            });
+        } catch (error) {
+            console.log('Error al obtener clics (tabla EmailClicks puede no existir):', error.message);
+            dailyClicks = [];
+        }
 
         // Combinar estadísticas de correos y clics
         const combinedStats = {};
@@ -177,19 +182,25 @@ class StatisticsService {
         });
 
         // Obtener clics por día en el rango
-        const dailyClicks = await EmailClick.findAll({
-            attributes: [
-                [sequelize.fn('date', sequelize.col('clickedAt')), 'date'],
-                [sequelize.fn('count', sequelize.col('id')), 'clicks']
-            ],
-            where: {
-                clickedAt: {
-                    [Op.between]: [start, end]
-                }
-            },
-            group: [sequelize.fn('date', sequelize.col('clickedAt'))],
-            order: [[sequelize.fn('date', sequelize.col('clickedAt')), 'ASC']]
-        });
+        let dailyClicks = [];
+        try {
+            dailyClicks = await EmailClick.findAll({
+                attributes: [
+                    [sequelize.fn('date', sequelize.col('clickedAt')), 'date'],
+                    [sequelize.fn('count', sequelize.col('id')), 'clicks']
+                ],
+                where: {
+                    clickedAt: {
+                        [Op.between]: [start, end]
+                    }
+                },
+                group: [sequelize.fn('date', sequelize.col('clickedAt'))],
+                order: [[sequelize.fn('date', sequelize.col('clickedAt')), 'ASC']]
+            });
+        } catch (error) {
+            console.log('Error al obtener clics por rango (tabla EmailClicks puede no existir):', error.message);
+            dailyClicks = [];
+        }
 
         // Combinar estadísticas de correos y clics
         const combinedStats = {};
@@ -259,6 +270,57 @@ class StatisticsService {
         });
 
         return stats;
+    }
+
+    // Obtener detalles completos de un correo
+    static async getEmailDetails(emailId) {
+        const email = await Email.findByPk(emailId, {
+            include: [{
+                model: Campaign,
+                attributes: ['name', 'description']
+            }]
+        });
+
+        if (!email) {
+            throw new Error('Correo no encontrado');
+        }
+
+        return email;
+    }
+
+    // Renderizar el HTML del correo
+    static async renderEmailHTML(emailId) {
+        const email = await this.getEmailDetails(emailId);
+        
+        // Importar las funciones necesarias
+        const ejs = require('ejs');
+        const path = require('path');
+        const EmailTrackingService = require('./emailTracking');
+
+        // Preparar los datos para la plantilla
+        const templateData = {
+            customerName: email.customerName,
+            offerTitle: email.offerTitle,
+            offerDescription: email.offerDescription,
+            offerPrice: email.offerPrice,
+            offerLink: email.offerLink || '#',
+            productImage: email.productImage,
+            companyName: email.Campaign?.name || 'HAMSE',
+            unsubscribeLink: '#',
+            trackingLink: (link) => EmailTrackingService.generateTrackingLink(emailId, link),
+            trackingPixel: EmailTrackingService.generateTrackingLink(emailId)
+        };
+
+        // Renderizar la plantilla
+        return new Promise((resolve, reject) => {
+            ejs.renderFile(path.join(__dirname, '..', '..', 'views', 'email-template.ejs'), templateData, (err, html) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(html);
+                }
+            });
+        });
     }
 }
 

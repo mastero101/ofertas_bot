@@ -1,4 +1,4 @@
-const { Email, EmailClick } = require('../models/Email');
+const { Email, EmailClick } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('sequelize');
 

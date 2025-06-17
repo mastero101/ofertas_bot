@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const { Email } = require('../models/Email');
+const { Email } = require('../models');
 const { Op } = require('sequelize');
 const { sendHTMLEmail } = require('./emailService');
 

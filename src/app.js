@@ -10,7 +10,7 @@ const EmailTrackingService = require('./services/emailTracking');
 const statisticsRoutes = require('./routes/statistics');
 const errorHandler = require('./middleware/errorHandler');
 const { v4: uuidv4 } = require('uuid');
-const Campaign = require('./models/Campaign');
+const { Campaign, Email } = require('./models');
 const campaignsRoutes = require('./routes/campaigns');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
@@ -186,7 +186,6 @@ app.post('/send-queue', async (req, res) => {
     try {
         const results = [];
         const errors = [];
-        const { Email } = require('./models/Email');
 
         for (const emailData of emailQueue) {
             try {
@@ -647,7 +646,6 @@ app.post('/send-mass-emails', upload.fields([
             offerLink = `https://${offerLink}`;
         }
 
-        const { Email } = require('./models/Email');
         const results = [];
         const errors = [];
 

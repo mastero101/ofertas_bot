@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-const { Email } = require('./Email');
 
 const Campaign = sequelize.define('Campaign', {
     id: {
@@ -49,9 +48,5 @@ const Campaign = sequelize.define('Campaign', {
     timestamps: true,
     tableName: 'Campaigns'
 });
-
-// Establecer la relación entre Campaign y Email
-Campaign.hasMany(Email, { foreignKey: 'campaignId' });
-Email.belongsTo(Campaign, { foreignKey: 'campaignId' });
 
 module.exports = Campaign; 

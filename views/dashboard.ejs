@@ -110,31 +110,6 @@
                     </div>
                 </div>
 
-                <!-- Scheduled Emails -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Correos Programados</h5>
-                                <div class="table-responsive">
-                                    <table class="table table-hover" id="scheduledEmailsTable">
-                                        <thead>
-                                            <tr>
-                                                <th class="d-none d-md-table-cell">Destinatario</th>
-                                                <th>Asunto</th>
-                                                <th class="d-none d-md-table-cell">Programado para</th>
-                                                <th>Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Email Status Filter -->
                 <div class="row mt-4">
                     <div class="col-12">
@@ -142,7 +117,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h5 class="card-title mb-0">Filtrar Correos por Estado</h5>
-                                    <div class="d-flex gap-2">
+                                    <div class="d-flex flex-column flex-sm-row gap-2">
                                         <select id="statusFilter" class="form-select form-select-sm" style="min-width: 150px;">
                                             <option value="all">Todos los estados</option>
                                             <option value="pending">Pendientes</option>
@@ -150,24 +125,26 @@
                                             <option value="failed">Fallidos</option>
                                             <option value="scheduled">Programados</option>
                                         </select>
-                                        <button onclick="loadEmailsByStatus()" class="btn btn-primary btn-sm">
-                                            <i class="fas fa-filter"></i> <span class="btn-text">Filtrar</span>
-                                        </button>
-                                        <button onclick="resetStatusFilter()" class="btn btn-outline-secondary btn-sm">
-                                            <i class="fas fa-undo"></i> <span class="btn-text">Limpiar</span>
-                                        </button>
+                                        <div class="d-flex gap-2">
+                                            <button onclick="loadEmailsByStatus()" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-filter"></i> <span class="btn-text">Filtrar</span>
+                                            </button>
+                                            <button onclick="resetStatusFilter()" class="btn btn-outline-secondary btn-sm">
+                                                <i class="fas fa-undo"></i> <span class="btn-text">Limpiar</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table table-hover" id="emailsTable">
                                         <thead>
                                             <tr>
-                                                <th class="d-none d-md-table-cell">Destinatario</th>
+                                                <th class="d-none d-lg-table-cell">Destinatario</th>
                                                 <th>Asunto</th>
                                                 <th class="d-none d-md-table-cell">Estado</th>
-                                                <th class="d-none d-md-table-cell">Fecha</th>
+                                                <th class="d-none d-lg-table-cell">Fecha</th>
                                                 <th class="d-none d-md-table-cell">Abierto</th>
-                                                <th>Acciones</th>
+                                                <th class="text-center">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -179,6 +156,88 @@
                     </div>
                 </div>
             </main>
+        </div>
+    </div>
+
+    <!-- Modal para vista previa del correo -->
+    <div class="modal fade" id="emailPreviewModal" tabindex="-1" aria-labelledby="emailPreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="emailPreviewModalLabel">Vista Previa del Correo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="email-preview-container">
+                                <div id="emailPreviewLoading" class="modal-loading">
+                                    <i class="fas fa-spinner"></i>
+                                    <p>Cargando vista previa del correo...</p>
+                                </div>
+                                <iframe id="emailPreviewFrame" style="width: 100%; height: 600px; border: 1px solid #dee2e6; border-radius: 8px; display: none;"></iframe>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="email-details">
+                                <h6>Detalles del Correo</h6>
+                                <div id="emailDetailsLoading" class="modal-loading">
+                                    <i class="fas fa-spinner"></i>
+                                    <p>Cargando detalles...</p>
+                                </div>
+                                <div id="emailDetailsContent" style="display: none;">
+                                    <div class="detail-item">
+                                        <strong>Destinatario:</strong>
+                                        <span id="emailDetailTo"></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <strong>Asunto:</strong>
+                                        <span id="emailDetailSubject"></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <strong>Estado:</strong>
+                                        <span id="emailDetailStatus"></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <strong>Fecha de Creación:</strong>
+                                        <span id="emailDetailCreated"></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <strong>Fecha de Envío:</strong>
+                                        <span id="emailDetailSent"></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <strong>Programado para:</strong>
+                                        <span id="emailDetailScheduled"></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <strong>Abierto:</strong>
+                                        <span id="emailDetailOpened"></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <strong>Cliente:</strong>
+                                        <span id="emailDetailCustomer"></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <strong>Oferta:</strong>
+                                        <span id="emailDetailOffer"></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <strong>Precio:</strong>
+                                        <span id="emailDetailPrice"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="openEmailInNewTab()">
+                        <i class="fas fa-external-link-alt"></i> Abrir en Nueva Pestaña
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -397,7 +456,17 @@
                     tbody.innerHTML = '';
                     
                     if (data.data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No se encontraron correos con el estado seleccionado</td></tr>';
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="text-center py-5">
+                                    <div class="empty-state">
+                                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                        <h6 class="text-muted">No se encontraron correos</h6>
+                                        <p class="text-muted small">No hay correos con el estado seleccionado</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
                         return;
                     }
                     
@@ -440,7 +509,7 @@
                             '<i class="fas fa-eye-slash text-muted" title="Correo no abierto"></i>';
                         
                         tr.innerHTML = `
-                            <td class="d-none d-md-table-cell">
+                            <td class="d-none d-lg-table-cell">
                                 <div class="text-truncate" style="max-width: 200px;" title="${email.to}">
                                     ${email.to}
                                 </div>
@@ -450,19 +519,26 @@
                                     <div class="email-subject text-truncate" style="max-width: 300px;" title="${email.subject}">
                                         ${email.subject}
                                     </div>
-                                    ${isMobile ? `<small class="text-muted d-block">${email.to}</small>` : ''}
+                                    <div class="email-mobile-details d-block d-lg-none">
+                                        <small class="text-muted d-block">${email.to}</small>
+                                        <small class="text-muted d-block">${displayDate}</small>
+                                        <div class="mt-1">
+                                            ${statusBadge}
+                                            <span class="ms-2">${openedIcon}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                             <td class="d-none d-md-table-cell">
                                 ${statusBadge}
                             </td>
-                            <td class="d-none d-md-table-cell">
+                            <td class="d-none d-lg-table-cell">
                                 <small class="text-muted">${displayDate}</small>
                             </td>
                             <td class="d-none d-md-table-cell text-center">
                                 ${openedIcon}
                             </td>
-                            <td>
+                            <td class="text-center">
                                 <div class="btn-group btn-group-sm" role="group">
                                     <button onclick="viewEmailDetails('${email.id}')" class="btn btn-outline-primary btn-sm" title="Ver detalles">
                                         <i class="fas fa-eye"></i>
@@ -483,7 +559,17 @@
             } catch (error) {
                 console.error('Error loading emails by status:', error);
                 const tbody = document.querySelector('#emailsTable tbody');
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Error al cargar los correos</td></tr>';
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <div class="empty-state">
+                                <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                                <h6 class="text-danger">Error al cargar los correos</h6>
+                                <p class="text-muted small">Intenta de nuevo más tarde</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
             }
         }
 
@@ -494,9 +580,104 @@
         }
 
         // Función para ver detalles del correo
-        function viewEmailDetails(emailId) {
-            // Por ahora solo mostramos un alert, pero se puede expandir para mostrar un modal
-            alert(`Detalles del correo ID: ${emailId}\n\nEsta funcionalidad se puede expandir para mostrar más información del correo.`);
+        async function viewEmailDetails(emailId) {
+            try {
+                // Mostrar loading en el modal
+                const modal = new bootstrap.Modal(document.getElementById('emailPreviewModal'));
+                modal.show();
+                
+                // Mostrar estados de carga
+                document.getElementById('emailPreviewLoading').style.display = 'block';
+                document.getElementById('emailPreviewFrame').style.display = 'none';
+                document.getElementById('emailDetailsLoading').style.display = 'block';
+                document.getElementById('emailDetailsContent').style.display = 'none';
+
+                // Cargar detalles del correo
+                const response = await fetch(`/api/statistics/emails/${emailId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const email = data.data;
+                    
+                    // Ocultar loading de detalles y mostrar contenido
+                    document.getElementById('emailDetailsLoading').style.display = 'none';
+                    document.getElementById('emailDetailsContent').style.display = 'block';
+                    
+                    // Actualizar detalles en el sidebar
+                    document.getElementById('emailDetailTo').textContent = email.to;
+                    document.getElementById('emailDetailSubject').textContent = email.subject;
+                    
+                    // Estado con badge
+                    let statusBadge = '';
+                    switch(email.status) {
+                        case 'sent':
+                            statusBadge = '<span class="badge bg-success">Enviado</span>';
+                            break;
+                        case 'pending':
+                            statusBadge = '<span class="badge bg-warning text-dark">Pendiente</span>';
+                            break;
+                        case 'failed':
+                            statusBadge = '<span class="badge bg-danger">Fallido</span>';
+                            break;
+                        case 'scheduled':
+                            statusBadge = '<span class="badge bg-info">Programado</span>';
+                            break;
+                        default:
+                            statusBadge = `<span class="badge bg-secondary">${email.status}</span>`;
+                    }
+                    document.getElementById('emailDetailStatus').innerHTML = statusBadge;
+                    
+                    // Fechas
+                    document.getElementById('emailDetailCreated').textContent = new Date(email.createdAt).toLocaleString();
+                    document.getElementById('emailDetailSent').textContent = email.sentAt ? new Date(email.sentAt).toLocaleString() : 'No enviado';
+                    document.getElementById('emailDetailScheduled').textContent = email.scheduledFor ? new Date(email.scheduledFor).toLocaleString() : 'No programado';
+                    
+                    // Estado de apertura
+                    document.getElementById('emailDetailOpened').innerHTML = email.trackingOpened ? 
+                        '<i class="fas fa-eye text-success"></i> Abierto' : 
+                        '<i class="fas fa-eye-slash text-muted"></i> No abierto';
+                    
+                    // Información del cliente y oferta
+                    document.getElementById('emailDetailCustomer').textContent = email.customerName;
+                    document.getElementById('emailDetailOffer').textContent = email.offerTitle;
+                    document.getElementById('emailDetailPrice').textContent = email.offerPrice ? `$${email.offerPrice}` : 'No especificado';
+                    
+                    // Cargar vista previa del HTML
+                    const previewUrl = `/api/statistics/emails/${emailId}/preview`;
+                    const iframe = document.getElementById('emailPreviewFrame');
+                    
+                    iframe.onload = function() {
+                        // Ocultar loading y mostrar iframe cuando se cargue
+                        document.getElementById('emailPreviewLoading').style.display = 'none';
+                        iframe.style.display = 'block';
+                    };
+                    
+                    iframe.src = previewUrl;
+                    
+                    // Guardar el emailId para el botón "Abrir en Nueva Pestaña"
+                    window.currentEmailId = emailId;
+                    
+                } else {
+                    throw new Error(data.error || 'Error al cargar los detalles del correo');
+                }
+            } catch (error) {
+                console.error('Error loading email details:', error);
+                alert('Error al cargar los detalles del correo: ' + error.message);
+                
+                // Cerrar modal en caso de error
+                const modal = bootstrap.Modal.getInstance(document.getElementById('emailPreviewModal'));
+                if (modal) {
+                    modal.hide();
+                }
+            }
+        }
+
+        // Función para abrir el correo en una nueva pestaña
+        function openEmailInNewTab() {
+            if (window.currentEmailId) {
+                const previewUrl = `/api/statistics/emails/${window.currentEmailId}/preview`;
+                window.open(previewUrl, '_blank');
+            }
         }
 
         // Cargar datos al cargar la página
