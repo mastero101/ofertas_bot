@@ -310,130 +310,123 @@ async function sendHTMLEmail(emailData) {
     }
 }
 
-// Update the send-emails route with better error handling
+// Handle manual email submission
 app.post('/send-emails', upload.single('productImage'), async (req, res) => {
     try {
+        const { email, customerName, subject, offerTitle, offerDescription, offerPrice, offerLink, scheduledFor, scheduleEmail, campaignId } = req.body;
+
+        // Handle product image upload if present
         let imageUrl = null;
         if (req.file) {
             const imgbbResponse = await imgbbUploader({
-                apiKey: IMGBB_API_KEY,
+                apiKey: process.env.IMGBB_API_KEY,
                 base64string: req.file.buffer.toString('base64')
             });
             imageUrl = imgbbResponse.display_url;
         }
-        
-        // Generar ID de campaña usando UUID
-        const campaignId = uuidv4();
-
-        console.log('scheduledFor from request (manual):', req.body.scheduledFor);
-
-        // Crear la campaña primero
-        await Campaign.create({
-            id: campaignId,
-            name: `Campaña Manual ${new Date().toLocaleDateString()}`,
-            description: req.body.subject,
-            status: req.body.scheduledFor ? 'paused' : 'active',
-            scheduledFor: req.body.scheduledFor ? new Date(req.body.scheduledFor) : null
-        });
 
         // Validar y formatear el offerLink
-        let offerLink = req.body.offerLink || '#';
-        if (offerLink !== '#' && !offerLink.startsWith('http://') && !offerLink.startsWith('https://')) {
-            offerLink = `https://${offerLink}`;
+        let formattedOfferLink = offerLink || '#';
+        if (formattedOfferLink !== '#' && !formattedOfferLink.startsWith('http://') && !formattedOfferLink.startsWith('https://')) {
+            formattedOfferLink = `https://${formattedOfferLink}`;
+        }
+
+        // Generar ID de campaña si no se proporciona
+        const finalCampaignId = campaignId || uuidv4();
+
+        // Crear o encontrar la campaña
+        let campaign = await Campaign.findByPk(finalCampaignId);
+        if (!campaign) {
+            campaign = await Campaign.create({
+                id: finalCampaignId,
+                name: `Campaña Manual ${new Date().toLocaleDateString()}`,
+                description: subject,
+                status: 'active'
+            });
         }
 
         const emailData = {
-            to: req.body.email,
-            subject: req.body.subject,
+            to: email,
+            customerName: customerName || 'Cliente',
+            subject: subject.trim(),
             companyName: 'HAMSE',
-            customerName: req.body.customerName || 'Cliente',
-            offerTitle: req.body.offerTitle,
-            offerDescription: req.body.offerDescription,
-            offerPrice: req.body.offerPrice,
-            offerLink: offerLink,
+            offerTitle: offerTitle,
+            offerDescription: offerDescription,
+            offerPrice: offerPrice,
+            offerLink: formattedOfferLink,
             unsubscribeLink: '#',
             productImage: imageUrl,
-            campaignId: campaignId
+            campaignId: finalCampaignId,
+            status: scheduleEmail === 'on' ? 'scheduled' : 'pending',
+            scheduledFor: scheduleEmail === 'on' ? new Date(scheduledFor) : null
         };
 
-        // Si hay fecha programada, agregarla
-        if (req.body.scheduledFor) {
-            emailData.scheduledFor = new Date(req.body.scheduledFor);
-        }
-
         // Guardar el correo en la base de datos
-        const { Email } = require('./models/Email');
         const createdEmail = await Email.create(emailData);
-        
-        console.log('Created Email object before sending/scheduling:', createdEmail.toJSON());
 
-        // Enviar el correo (o programarlo si tiene fecha programada)
-        const result = await sendHTMLEmail(createdEmail.toJSON());
-
-        res.json({ 
-            success: true, 
-            message: emailData.scheduledFor ? 
-                'Correo programado exitosamente' : 
-                'Email enviado satisfactoriamente',
-            result 
-        });
+        if (scheduleEmail === 'on') {
+            // Si está programado, el scheduler lo manejará
+            res.json({ success: true, message: 'Correo programado exitosamente.' });
+        } else {
+            // Enviar el correo inmediatamente
+            await sendHTMLEmail(createdEmail.toJSON());
+            createdEmail.status = 'sent';
+            createdEmail.sentAt = new Date();
+            await createdEmail.save();
+            res.json({ success: true, message: 'Correo enviado satisfactoriamente.' });
+        }
     } catch (error) {
-        console.error('Error sending email:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error sending email',
-            error: error.message 
-        });
+        console.error('Error sending manual email:', error);
+        res.status(500).json({ success: false, message: 'Error al enviar el correo', error: error.message });
     }
 });
 
 // Add this near the top with other middleware
 app.use('/uploads', express.static('uploads'));
 
-// Update the preview route to handle file uploads
+// Preview email route
 app.post('/preview-email', upload.single('productImage'), async (req, res) => {
     try {
+        const { subject, offerTitle, offerDescription, offerPrice, offerLink, customerName } = req.body;
+        
         let imageUrl = null;
         if (req.file) {
             const imgbbResponse = await imgbbUploader({
-                apiKey: IMGBB_API_KEY,
+                apiKey: process.env.IMGBB_API_KEY,
                 base64string: req.file.buffer.toString('base64')
             });
             imageUrl = imgbbResponse.display_url;
         }
 
-        const emailData = {
-            to: req.body.email || 'preview@example.com',
-            subject: req.body.subject || 'Vista Previa',
-            companyName: 'HAMSE',
-            customerName: req.body.customerName || 'Cliente',
-            offerTitle: req.body.offerTitle || '',
-            offerDescription: req.body.offerDescription || '',
-            offerPrice: req.body.offerPrice || '',
-            offerLink: req.body.offerLink || '#',
-            unsubscribeLink: '#',
-            productImage: imageUrl,  // Use ImgBB URL instead of local path
-            campaignId: req.body.campaignId || 'preview' // Usar campaignId del formulario o 'preview'
-        };
-
         // Obtener la función generateTrackingLink para la vista previa
         const { generateTrackingLink } = require('./services/emailTracking');
         const dummyEmailId = 'preview-id'; // Usar un ID ficticio para la vista previa
 
-        const htmlContent = await ejs.renderFile(
-            path.join(__dirname, '../views/email-template.ejs'),
-            {
-                ...emailData,
-                // Pasar la función generateTrackingLink y la URL del pixel a la plantilla
-                trackingLink: (link) => generateTrackingLink(dummyEmailId, link),
-                trackingPixel: generateTrackingLink(dummyEmailId) // URL para el pixel de apertura con ID ficticio
+        // Renderizar la plantilla EJS con los datos proporcionados
+        ejs.renderFile(path.join(__dirname, '..', 'views', 'email-template.ejs'), {
+            subject,
+            customerName: customerName || 'Cliente',
+            offerTitle,
+            offerDescription,
+            offerPrice,
+            offerLink: offerLink || '#',
+            productImage: imageUrl,
+            unsubscribeLink: '#',
+            companyName: 'HAMSE',
+            // Pasar la función generateTrackingLink y la URL del pixel a la plantilla
+            trackingLink: (link) => generateTrackingLink(dummyEmailId, link),
+            trackingPixel: generateTrackingLink(dummyEmailId) // URL para el pixel de apertura con ID ficticio
+        }, (err, html) => {
+            if (err) {
+                console.error('Error rendering email template:', err);
+                return res.status(500).json({ success: false, message: 'Error al renderizar la plantilla de correo', error: err.message });
             }
-        );
+            res.send(html); // Enviar el HTML renderizado al cliente
+        });
 
-        res.send(htmlContent);
     } catch (error) {
-        console.error('Error generating preview:', error);
-        res.status(500).send('Error al generar la vista previa');
+        console.error('Error in preview-email route:', error);
+        res.status(500).json({ success: false, message: 'Error al generar la vista previa del correo', error: error.message });
     }
 });
 
