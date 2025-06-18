@@ -20,6 +20,7 @@ class EmailScheduler {
                 for (const email of scheduledEmails) {
                     try {
                         await sendHTMLEmail({
+                            id: email.id,
                             to: email.to,
                             subject: email.subject,
                             customerName: email.customerName,
