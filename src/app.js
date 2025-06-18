@@ -663,10 +663,10 @@ app.post('/send-mass-emails', upload.fields([
                     offerLink: offerLink,
                     unsubscribeLink: '#',
                     productImage: imageUrl,
-                    campaignId: campaignId
+                    campaignId: campaignId,
+                    status: req.body.scheduledFor ? 'scheduled' : 'pending'
                 };
 
-                // Si hay fecha programada, agregarla
                 if (req.body.scheduledFor) {
                     emailData.scheduledFor = new Date(req.body.scheduledFor);
                 }
