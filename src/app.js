@@ -14,9 +14,6 @@ const { Campaign, Email } = require('./models');
 const campaignsRoutes = require('./routes/campaigns');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
-// Configurar zona horaria para México Central
-process.env.TZ = 'America/Mexico_City';
-
 let fetch;
 (async () => {
     fetch = (await import('node-fetch')).default;
@@ -681,7 +678,7 @@ app.post('/send-mass-emails', upload.fields([
 
                 if (!req.body.scheduledFor) {
                     // Solo enviar inmediatamente si NO está programado
-                    await sendHTMLEmail(createdEmail.toJSON());
+                await sendHTMLEmail(createdEmail.toJSON());
                 }
 
                 results.push({ email: row.email, status: 'success' });

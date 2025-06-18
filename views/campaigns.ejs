@@ -47,8 +47,7 @@
                         const options = {
                             year: 'numeric', month: '2-digit', day: '2-digit',
                             hour: '2-digit', minute: '2-digit', second: '2-digit',
-                            hour12: true,
-                            timeZone: 'America/Mexico_City'
+                            hour12: true
                         };
                         document.getElementById('systemClock').textContent = now.toLocaleString('es-MX', options);
                     }
@@ -85,12 +84,12 @@
                                                 </div>
                                             </div>
                                             <p class="card-text text-muted small"><strong>Descripción:</strong> <%= campaign.description %></p>
-                                            <p class="card-text text-muted small"><strong>Creada:</strong> <%= new Date(campaign.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) %></p>
+                                            <p class="card-text text-muted small"><strong>Creada:</strong> <%= new Date(campaign.createdAt).toLocaleString() %></p>
                                             <% if (campaign.scheduledFor) { %>
                                                 <p class="card-text text-muted small">
                                                     <strong>Programada para:</strong> 
                                                     <span class="text-primary">
-                                                        <%= new Date(campaign.scheduledFor).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) %>
+                                                        <%= new Date(campaign.scheduledFor).toLocaleString() %>
                                                     </span>
                                                 </p>
                                             <% } %>
@@ -236,8 +235,8 @@
                         }
                         
                         // Formatear fechas
-                        const sentDate = email.sentAt ? new Date(email.sentAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : '-';
-                        const scheduledDate = email.scheduledFor ? new Date(email.scheduledFor).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : '-';
+                        const sentDate = email.sentAt ? new Date(email.sentAt).toLocaleString() : '-';
+                        const scheduledDate = email.scheduledFor ? new Date(email.scheduledFor).toLocaleString() : '-';
                         
                         // Icono de apertura
                         const openedIcon = email.trackingOpened ? 
