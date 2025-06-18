@@ -21,7 +21,7 @@ async function insertTestScheduledEmail() {
         // Crear correo programado
         const email = await Email.create({
             id: uuidv4(),
-            to: 'prueba@correo.com',
+            to: 'castro.alejandro17@gmail.com',
             subject: 'Correo programado de prueba',
             status: 'scheduled',
             scheduledFor,
