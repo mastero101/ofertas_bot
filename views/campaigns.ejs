@@ -39,7 +39,21 @@
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2"><i class="fas fa-bullhorn"></i> Campañas</h1>
+                    <span id="systemClock" class="badge bg-dark fs-6"></span>
                 </div>
+                <script>
+                    function updateClock() {
+                        const now = new Date();
+                        const options = {
+                            year: 'numeric', month: '2-digit', day: '2-digit',
+                            hour: '2-digit', minute: '2-digit', second: '2-digit',
+                            hour12: true
+                        };
+                        document.getElementById('systemClock').textContent = now.toLocaleString('es-MX', options);
+                    }
+                    setInterval(updateClock, 1000);
+                    updateClock();
+                </script>
 
                 <div class="campaigns-container">
                     <div class="campaigns-list">
