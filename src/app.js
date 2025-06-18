@@ -676,8 +676,10 @@ app.post('/send-mass-emails', upload.fields([
                 
                 console.log('Created Email object for mass email before sending/scheduling:', createdEmail.toJSON());
 
-                // Enviar el correo (o programarlo si tiene fecha programada)
-                await sendHTMLEmail(createdEmail.toJSON());
+                if (!req.body.scheduledFor) {
+                    // Solo enviar inmediatamente si NO está programado
+                    await sendHTMLEmail(createdEmail.toJSON());
+                }
 
                 results.push({ email: row.email, status: 'success' });
             } catch (error) {
