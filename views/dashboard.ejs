@@ -47,7 +47,8 @@
                         const options = {
                             year: 'numeric', month: '2-digit', day: '2-digit',
                             hour: '2-digit', minute: '2-digit', second: '2-digit',
-                            hour12: true
+                            hour12: true,
+                            timeZone: 'America/Mexico_City'
                         };
                         document.getElementById('systemClock').textContent = now.toLocaleString('es-MX', options);
                     }
@@ -421,7 +422,7 @@
                                     ${isMobile ? `<small class="text-muted d-block">${email.to}</small>` : ''}
                                 </div>
                             </td>
-                            <td class="d-none d-md-table-cell">${new Date(email.scheduledFor).toLocaleString()}</td>
+                            <td class="d-none d-md-table-cell">${new Date(email.scheduledFor).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}</td>
                             <td>
                                 <button onclick="cancelScheduledEmail('${email.id}')" class="btn btn-sm btn-danger">
                                     <i class="fas fa-times"></i>
@@ -510,11 +511,11 @@
                         // Formatear la fecha
                         let displayDate = '';
                         if (email.sentAt) {
-                            displayDate = new Date(email.sentAt).toLocaleString();
+                            displayDate = new Date(email.sentAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
                         } else if (email.scheduledFor) {
-                            displayDate = new Date(email.scheduledFor).toLocaleString();
+                            displayDate = new Date(email.scheduledFor).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
                         } else {
-                            displayDate = new Date(email.createdAt).toLocaleString();
+                            displayDate = new Date(email.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
                         }
                         
                         // Icono de apertura
@@ -642,9 +643,9 @@
                     document.getElementById('emailDetailStatus').innerHTML = statusBadge;
                     
                     // Fechas
-                    document.getElementById('emailDetailCreated').textContent = new Date(email.createdAt).toLocaleString();
-                    document.getElementById('emailDetailSent').textContent = email.sentAt ? new Date(email.sentAt).toLocaleString() : 'No enviado';
-                    document.getElementById('emailDetailScheduled').textContent = email.scheduledFor ? new Date(email.scheduledFor).toLocaleString() : 'No programado';
+                    document.getElementById('emailDetailCreated').textContent = new Date(email.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
+                    document.getElementById('emailDetailSent').textContent = email.sentAt ? new Date(email.sentAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : 'No enviado';
+                    document.getElementById('emailDetailScheduled').textContent = email.scheduledFor ? new Date(email.scheduledFor).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : 'No programado';
                     
                     // Estado de apertura
                     document.getElementById('emailDetailOpened').innerHTML = email.trackingOpened ? 
