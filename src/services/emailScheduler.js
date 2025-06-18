@@ -8,6 +8,7 @@ class EmailScheduler {
         // Ejecutar cada minuto para verificar correos programados
         cron.schedule('* * * * *', async () => {
             try {
+                console.log('[CRON] Buscando correos programados para enviar...');
                 const scheduledEmails = await Email.findAll({
                     where: {
                         status: 'scheduled',
@@ -17,8 +18,11 @@ class EmailScheduler {
                     }
                 });
 
+                console.log(`[CRON] Correos programados encontrados: ${scheduledEmails.length}`);
+
                 for (const email of scheduledEmails) {
                     try {
+                        console.log(`[CRON] Intentando enviar correo programado ID: ${email.id}, para: ${email.to}, programado para: ${email.scheduledFor}`);
                         await sendHTMLEmail({
                             id: email.id,
                             to: email.to,
@@ -30,18 +34,18 @@ class EmailScheduler {
                             offerLink: email.offerLink,
                             productImage: email.productImage
                         });
-
+                        console.log(`[CRON] Correo enviado correctamente. ID: ${email.id}`);
                         await email.update({
                             status: 'sent',
                             sentAt: new Date()
                         });
                     } catch (error) {
-                        console.error(`Error sending scheduled email ${email.id}:`, error);
+                        console.error(`[CRON] Error enviando correo programado ${email.id}:`, error);
                         await email.update({ status: 'failed' });
                     }
                 }
             } catch (error) {
-                console.error('Error in email scheduler:', error);
+                console.error('[CRON] Error en el programador de correos:', error);
             }
         });
     }
