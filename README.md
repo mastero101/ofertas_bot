@@ -34,8 +34,14 @@ npm install
 
 ```bash
 ZEPTO_API_KEY=your_zepto_api_key
-ZEPTO_FROM_EMAIL=your_sender_email
-IMGBB_API_KEY=your_imgbb_api_key
+ZEPTO_FROM_EMAIL=noreply@ferche.app
+FROM_EMAIL=noreply@ferche.app
+BOUNCE_EMAIL=reply@ferche.app
+BASE_URL=http://localhost:1071
+CLOUDINARY_CLOUD_NAME=cloud_name
+CLOUDINARY_API_KEY=api_key
+CLOUDINARY_API_SECRET=api_secret
+DATABASE_URL=postgresql_url
  ```
 
 ## Usage
