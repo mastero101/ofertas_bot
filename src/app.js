@@ -3,7 +3,6 @@ const multer = require('multer');
 const xlsx = require('xlsx');
 const path = require('path');
 const ejs = require('ejs');
-const imgbbUploader = require('imgbb-uploader');
 const { connectDB } = require('./config/database');
 const EmailScheduler = require('./services/emailScheduler');
 const EmailTrackingService = require('./services/emailTracking');
@@ -12,6 +11,7 @@ const errorHandler = require('./middleware/errorHandler');
 const { v4: uuidv4 } = require('uuid');
 const { Campaign, Email } = require('./models');
 const campaignsRoutes = require('./routes/campaigns');
+const { uploadImageToCloudinary } = require('./services/imageUploadService');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 let fetch;
@@ -83,11 +83,10 @@ app.post('/upload', upload.fields([
         // Handle product image upload if present
         let imageUrl = null;
         if (req.files?.productImage) {
-            const imgbbResponse = await imgbbUploader({
-                apiKey: IMGBB_API_KEY,
-                base64string: req.files.productImage[0].buffer.toString('base64')
-            });
-            imageUrl = imgbbResponse.display_url;
+            imageUrl = await uploadImageToCloudinary(
+                req.files.productImage[0].buffer,
+                req.files.productImage[0].originalname
+            );
         }
 
         // Read Excel file
@@ -317,11 +316,10 @@ app.post('/send-emails', upload.single('productImage'), async (req, res) => {
         // Handle product image upload if present
         let imageUrl = null;
         if (req.file) {
-            const imgbbResponse = await imgbbUploader({
-                apiKey: process.env.IMGBB_API_KEY,
-                base64string: req.file.buffer.toString('base64')
-            });
-            imageUrl = imgbbResponse.display_url;
+            imageUrl = await uploadImageToCloudinary(
+                req.file.buffer,
+                req.file.originalname
+            );
         }
 
         // Validar y formatear el offerLink
@@ -390,11 +388,10 @@ app.post('/preview-email', upload.single('productImage'), async (req, res) => {
         
         let imageUrl = null;
         if (req.file) {
-            const imgbbResponse = await imgbbUploader({
-                apiKey: process.env.IMGBB_API_KEY,
-                base64string: req.file.buffer.toString('base64')
-            });
-            imageUrl = imgbbResponse.display_url;
+            imageUrl = await uploadImageToCloudinary(
+                req.file.buffer,
+                req.file.originalname
+            );
         }
 
         // Obtener la función generateTrackingLink para la vista previa
@@ -613,11 +610,10 @@ app.post('/send-mass-emails', upload.fields([
 
         let imageUrl = null;
         if (req.files.productImage) {
-            const imgbbResponse = await imgbbUploader({
-                apiKey: IMGBB_API_KEY,
-                base64string: req.files.productImage[0].buffer.toString('base64')
-            });
-            imageUrl = imgbbResponse.display_url;
+            imageUrl = await uploadImageToCloudinary(
+                req.files.productImage[0].buffer,
+                req.files.productImage[0].originalname
+            );
         }
 
         // Generar ID de campaña usando UUID
